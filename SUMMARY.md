@@ -4,5 +4,5 @@
 
 ## 👋 INTRODUCTION
 
-* [📝 Overview](introduction/overview/README.md)
+* [📝 Overview](introduction/overview.md)
   * [Problem and Solution](introduction/overview/problem-and-solution.md)
