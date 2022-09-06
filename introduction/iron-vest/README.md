@@ -1,4 +1,4 @@
-# Iron Vest
+# 💰 Iron Vest
 
 ### What is Iron Vest?
 
