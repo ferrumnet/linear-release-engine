@@ -39,7 +39,7 @@ struct CliffPoolInfo {
           uint256 nonCliffVestingTime; // 
           uint256 nonCliffReleaseRate;     //noncliff
           uint256 cliffReleaseRate;
-          uint256 lockTime;
+          uint256 cliffPeriod;
           address tokenAddress;
           uint256 totalVestedTokens;  //
           uint256 cliffPercentage;
