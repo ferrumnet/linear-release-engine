@@ -15,7 +15,6 @@ contract VestingHarvestContarct is Ownable, AccessControl{
 
     constructor(string memory _vestingName){
      vestingContractName = _vestingName;
-    //  require(_adminAddress != _msgSender() ,"admin cannot be deployer");
      ownerAddress =  _msgSender();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(VESTER_ROLE, msg.sender);
