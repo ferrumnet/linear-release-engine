@@ -37,8 +37,8 @@ struct CliffPoolInfo {
           uint256 vestingTime;
           uint256 cliffVestingTime;
           uint256 nonCliffVestingTime; // 
-          uint256 nonCliffReleaseRate;     //noncliff
-          uint256 cliffReleaseRate;
+          uint256 nonCliffReleaseRatePerSec;     //noncliff
+          uint256 cliffReleaseRatePerSec;
           uint256 cliffPeriod;
           address tokenAddress;
           uint256 totalVestedTokens;  //
@@ -52,10 +52,12 @@ struct CliffPoolInfo {
         uint256 allocation;    // VestingAllocation
         uint256 cliffAlloc;
         uint256 nonCliffAlloc;
-        uint256 claimableAmnt; //calimableAmnt   
+        uint256 claimedAmnt; //calimableAmnt   
         uint256 tokensRelaseTime;                      //tokensRelaseToDate    
         uint256 remainingClaimableCliff; 
-        uint256 remainingClaimableNonCliff; 
+        uint256 remainingClaimableNonCliff;
+        uint256 cliffRealeaseRatePerSec;
+        uint256 nonCliffRealeaseRatePerSec;  
         uint256 cliffLastWithdrawl;
         uint256 nonCliffLastWithdrawl;
 
