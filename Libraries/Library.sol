@@ -1,8 +1,6 @@
 pragma solidity ^0.8.12;
 
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
- */
+
 interface Vesting {
 
 
@@ -37,8 +35,6 @@ struct CliffPoolInfo {
           uint256 vestingTime;
           uint256 cliffVestingTime;
           uint256 nonCliffVestingTime; // 
-          uint256 nonCliffReleaseRatePerSec;     //noncliff
-          uint256 cliffReleaseRatePerSec;
           uint256 cliffPeriod;
           address tokenAddress;
           uint256 totalVestedTokens;  //
