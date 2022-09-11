@@ -197,8 +197,8 @@ contract VestingHarvestContarct is Ownable, AccessControl{
         Vesting.UserClifInfo memory info = userClifInfo[_poolId][_user];
      if(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp ){
 
-       if(info.cliffLastWithdrawl == 0 && cliffPoolInfo[_poolId].cliffVestingTime < block.timestamp ){
-           cliffClaimable = info.cliffAlloc;
+       if(cliffPoolInfo[_poolId].cliffVestingTime < block.timestamp ){
+           cliffClaimable = info.remainingClaimableCliff;
 
        }  else if(info.cliffLastWithdrawl == 0 && cliffPoolInfo[_poolId].cliffVestingTime > block.timestamp ){
           cliffClaimable = SafeMath.mul(SafeMath.sub(block.timestamp , cliffPoolInfo[_poolId].cliffPeriod ) , info.cliffRealeaseRatePerSec);
@@ -227,8 +227,8 @@ contract VestingHarvestContarct is Ownable, AccessControl{
         Vesting.UserClifInfo memory info = userClifInfo[_poolId][_user];
        if(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp ){
 
-          if(info.nonCliffLastWithdrawl == 0 && cliffPoolInfo[_poolId].nonCliffVestingTime < block.timestamp ){
-              nonCliffClaimable = info.nonCliffAlloc;
+          if(cliffPoolInfo[_poolId].nonCliffVestingTime < block.timestamp ){
+              nonCliffClaimable = info.remainingClaimableNonCliff;
 
           }
           else if(info.nonCliffLastWithdrawl == 0 && cliffPoolInfo[_poolId].nonCliffVestingTime > block.timestamp){
@@ -236,7 +236,7 @@ contract VestingHarvestContarct is Ownable, AccessControl{
 
 
         }
-         else if(info.nonCliffLastWithdrawl != 0 ){
+         else if(info.nonCliffLastWithdrawl != 0 && cliffPoolInfo[_poolId].nonCliffVestingTime > block.timestamp){
                nonCliffClaimable = SafeMath.mul(SafeMath.sub( block.timestamp , info.nonCliffLastWithdrawl ) , info.nonCliffRealeaseRatePerSec);
 
          
