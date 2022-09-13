@@ -114,12 +114,12 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         require(info.allocation > 0,"Allocation: You Don't have allocation in this pool");
         // require(poolInfo[_poolId].lockTime < block.timestamp,"Invalid Withdrarl: You can't withdraw before release date");
 
-        releaseRate =  info.releaseRate;
+        releaseRate =  info.releaseRatePerSec;
        if (poolInfo[_poolId].lockTime < block.timestamp){
        
         if(poolInfo[_poolId].vestingTime < block.timestamp ){
 
-        claimable = info.remaining;
+        claimable = info.remainingToBeClaimable;
          }
 
          else if(poolInfo[_poolId].vestingTime > block.timestamp){
@@ -142,7 +142,7 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         require(block.timestamp > poolInfo[_poolId].lockTime ,"Vesting: Lock Time Is Not Over Yet");
         require(transferAble > 0 ,"Vesting: Invalid TransferAble");
         uint256 claimed = SafeMath.add(info.claimedAmount , transferAble);
-        userInfo[_poolId][_msgSender()] = Vesting.UserInfo(info.allocation, claimed, info.tokensRelaseTime,SafeMath.sub(info.allocation,claimed),block.timestamp, info.releaseRate );
+        userInfo[_poolId][_msgSender()] = Vesting.UserInfo(info.allocation, claimed, info.tokensRelaseTime,SafeMath.sub(info.allocation,claimed),block.timestamp, info.releaseRatePerSec );
         emit Claim(_poolId,transferAble,_msgSender(),SafeMath.sub(info.allocation,claimed));
         
 
