@@ -4,9 +4,10 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";";
 import "./Libraries/Library.sol";
 
-contract VestingHarvestContarct is Ownable, AccessControl{
+contract VestingHarvestContarct is Ownable, AccessControl, ReentrancyGuard {
 
     
     uint256 public vestingPoolSize = 0;
@@ -31,15 +32,17 @@ contract VestingHarvestContarct is Ownable, AccessControl{
     }   
 
     // Mappings
-    mapping(address => bool) public cliff;
+    mapping(uint256 => bool) public cliff;
     mapping(uint256 => Vesting.PoolInfo) public poolInfo;
     mapping(uint256 => Vesting.CliffPoolInfo) public cliffPoolInfo;
     mapping(uint256 => mapping(address =>Vesting.UserInfo)) public userInfo;
     mapping(uint256 => mapping(address =>Vesting.UserClifInfo)) public userClifInfo;
+    mapping(uint256 => mapping(address =>Vesting.UserNonClifInfo)) public userNonClifInfo;
 
 
     // events
     event AddVesting(
+        uint256 poolId,
         string  poolName,
         uint256 startDate,
         uint256 vestingTime, 
@@ -92,21 +95,25 @@ contract VestingHarvestContarct is Ownable, AccessControl{
 
     //function type payable
     // This function is used to register vesting which is without cliff
-    function addVesting(string memory _poolName, uint256 _vestingTime, uint256 _cliffPeriod,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint[] memory _userAlloc) public onlyVester {
+    function addVesting(string memory _poolName, uint256 _vestingTime, uint256 _lockTime,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint[] memory _userAlloc) public onlyVester nonReentrant()  {
          require(_vestingTime > block.timestamp,"Vesting: Invalid Vesting Time");
-         require(_vestingTime >= _cliffPeriod,"Vesting: Lock time must be lesser than vesting time");
+         require(_vestingTime >= _lockTime,"Vesting: Lock time must be lesser than vesting time");
+         uint256 releaseRate;
           for(uint i=0; i<_usersAddresses.length;i++)
          { 
              
 
-        require(_totalVesting == _userAlloc[i],"Vesting: Total Vesting is Invalid");
-        uint256 releaseRate =SafeMath.div(_totalVesting ,(SafeMath.sub(_vestingTime,_cliffPeriod)));
-        poolInfo[vestingPoolSize] = Vesting.PoolInfo(_poolName, block.timestamp,_vestingTime,_cliffPeriod,releaseRate,_tokenAddress,_totalVesting, _usersAddresses,_userAlloc);
-        userInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserInfo(_userAlloc[i],0,_cliffPeriod,_userAlloc[i],0);
+        require(_totalVesting >= _userAlloc[i],"Vesting: Total Vesting is Invalid");
+        uint256 releaseRate = SafeMath.div(_userAlloc[i] ,(SafeMath.sub(_vestingTime,_lockTime)));
+        poolInfo[vestingPoolSize] = Vesting.PoolInfo(_poolName, block.timestamp,_vestingTime,_lockTime,_tokenAddress,_totalVesting, _usersAddresses,_userAlloc);
+        userInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserInfo(_userAlloc[i],0,_lockTime,_userAlloc[i],_lockTime,SafeMath.div(_userAlloc[i],(SafeMath.sub(_vestingTime,_lockTime))));
          } 
         IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),_totalVesting);
+        cliff[vestingPoolSize] = false;
+        emit AddVesting(vestingPoolSize,_poolName,block.timestamp,_vestingTime, _lockTime, releaseRate, _tokenAddress,_totalVesting,_usersAddresses,_userAlloc);
         vestingPoolSize = vestingPoolSize + 1;
-        cliff[_tokenAddress] = false;
+  
+        
 
      } 
 
@@ -118,57 +125,53 @@ contract VestingHarvestContarct is Ownable, AccessControl{
 
     // read only no gas required
     // to check how many tokens are claimable for the specific individual in a specifc pool
-    function claimable(uint256 _poolId, address _user) public view returns(uint256){
+    function claimable(uint256 _poolId, address _user) public view returns(uint256,uint256,uint256){
         uint256 claimable;
+        uint256 secondDiff;
+        uint256 releaseRate;
+        
         Vesting.UserInfo memory info = userInfo[_poolId][_user];
         require(info.allocation > 0,"Allocation: You Don't have allocation in this pool");
-        require(poolInfo[_poolId].lockTime < block.timestamp,"Invalid Withdrarl: You can't withdraw before release date");
+        // require(poolInfo[_poolId].lockTime < block.timestamp,"Invalid Withdrarl: You can't withdraw before release date");
 
-       uint256 releaseRate =  poolInfo[_poolId].releaseRate;
-       if(info.remaining>0){
+        releaseRate =  info.releaseRate;
+       if (poolInfo[_poolId].lockTime < block.timestamp){
+       
+        if(poolInfo[_poolId].vestingTime < block.timestamp ){
 
-        if(info.lastWithdrawl == 0 ){
-           
-           claimable = SafeMath.mul((SafeMath.sub( block.timestamp,poolInfo[_poolId].lockTime )) , releaseRate);
-           if(claimable > info.allocation){
-               claimable = info.allocation;
-           }
+        claimable = info.remaining;
+         }
 
-       }
-         else if(info.lastWithdrawl != 0){
-               claimable = SafeMath.mul(SafeMath.sub(block.timestamp , info.lastWithdrawl ) , releaseRate);
+         else if(poolInfo[_poolId].vestingTime > block.timestamp){
+         claimable = SafeMath.mul(SafeMath.sub(block.timestamp , info.lastWithdrawl ) , releaseRate);
 
-            if(claimable > info.allocation){
-               claimable = info.allocation;
-            }
-           }
-        
-       }
-           
+       }}
       else{
                claimable = 0;
            }
-         return claimable;
+         return (claimable,secondDiff,releaseRate);
     }
 
     // to claim the claimables 
     // funciton type payable
-    function claim(uint256 _poolId) public {
+    function claim(uint256 _poolId) public nonReentrant() {
        
-        uint256 transferable = claimable(_poolId,_msgSender());
+        (uint256 transferable,uint256 secDiff, uint256 releaseRate) = claimable(_poolId,_msgSender());
         // require(transferable > 0 , "transferable must not be 0");
         IERC20(poolInfo[_poolId].tokenAddress).transfer(_msgSender(),transferable);
         // IERC20(poolInfo[_poolId].tokenAddress).transfer(_msgSender(),10000000000);
          Vesting.UserInfo memory info = userInfo[_poolId][_msgSender()];
-        userInfo[_poolId][_msgSender()] = Vesting.UserInfo(info.allocation, claimable(_poolId,_msgSender()), info.tokensRelaseTime,SafeMath.sub(info.allocation,claimable(_poolId,_msgSender()) ) , block.timestamp );
+        require(transferable> 0 ,"Vesting: Invalid TransferAble");
+
+         uint256 claimed = SafeMath.add(info.claimedAmount , transferable);
+        userInfo[_poolId][_msgSender()] = Vesting.UserInfo(info.allocation, claimed, info.tokensRelaseTime,SafeMath.sub(info.allocation,claimed),block.timestamp, info.releaseRate );
 
     }
 
     // function type payable
     // use to register vesting
-    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress,uint256 _totalVesting, uint256 _cliffPercentage,address[] memory _usersAddresses,uint[] memory _userAlloc) public onlyVester{
-         require(_vestingTime > block.timestamp && _vestingTime > _cliffPeriod && _cliffPeriod > block.timestamp,"Vesting: Invalid Vesting or Cliff Time");
-        //  require(_cliffVestingTime >= _cliffPeriod,"Vesting: Lock time must be lesser than vesting time");
+    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress,uint256 _totalVesting, uint256 _cliffPercentage,address[] memory _usersAddresses,uint[] memory _userAlloc) public onlyVester nonReentrant(){
+        require(_vestingTime > block.timestamp && _vestingTime > _cliffPeriod && _cliffPeriod > block.timestamp,"Vesting: Invalid Vesting or Cliff Time");
         uint256 nonClifVestingTime = SafeMath.add(SafeMath.sub(_vestingTime , _cliffVestingTime),_cliffPeriod);
         
         uint256 cliffToken =SafeMath.div(SafeMath.mul(_totalVesting,_cliffPercentage),100);
@@ -177,105 +180,103 @@ contract VestingHarvestContarct is Ownable, AccessControl{
 
         require(_totalVesting >= _userAlloc[i],"Cliff Vesting: Total Vesting is Invalid");
         cliffPoolInfo[vestingPoolSize] = Vesting.CliffPoolInfo(_poolName, block.timestamp,_vestingTime,_cliffVestingTime,nonClifVestingTime,_cliffPeriod,_tokenAddress,_totalVesting,_cliffPercentage,_usersAddresses,_userAlloc);
-        // uint256 usrcliffAlloc = SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100);
-        // uint256 nonCliffAlloc = SafeMath.sub(_userAlloc[i],usrcliffAlloc);
-        // uint256 userNCRR = SafeMath.div(nonCliffAlloc,SafeMath.sub(_vestingTime , nonClifVestingTime));
-        userClifInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserClifInfo(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100),SafeMath.sub(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),0,_cliffPeriod,SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100),SafeMath.sub(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),SafeMath.div(SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100) ,SafeMath.sub(_cliffVestingTime,_cliffPeriod)),SafeMath.div(SafeMath.sub(_userAlloc[i],SafeMath.div( (SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),SafeMath.sub(nonClifVestingTime, _cliffPeriod)),0,0);
+
+        userClifInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserClifInfo(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100),0,_cliffPeriod,SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100),SafeMath.div(SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100) ,SafeMath.sub(_cliffVestingTime,_cliffPeriod)),_cliffPeriod);
+        userNonClifInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserNonClifInfo(_userAlloc[i],SafeMath.sub(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),0,_cliffPeriod,SafeMath.sub(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),SafeMath.div(SafeMath.sub(_userAlloc[i],SafeMath.div( (SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),SafeMath.sub(nonClifVestingTime, _cliffPeriod)),_cliffPeriod);
+
          }
         IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),_totalVesting);
-
+        cliff[vestingPoolSize] = true;  
         vestingPoolSize = vestingPoolSize + 1;
-        cliff[_tokenAddress] = true;    
+          
 
     }
 
 
     // function type readOnly
     // This function is used to return cliffclaimables for the vesting tokens
-    function cliffClaimable(uint256 _poolId,  address _user) public view returns(uint256){
+    function cliffClaimable(uint256 _poolId,  address _user) public view returns(uint256,uint256,uint256){
         uint256 cliffClaimable;
+        uint256 secondDiff;
+        uint256 releaseRate;
         Vesting.UserClifInfo memory info = userClifInfo[_poolId][_user];
+        require(info.allocation > 0,"Allocation: You Don't have allocation in this pool");
+
      if(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp ){
 
        if(cliffPoolInfo[_poolId].cliffVestingTime < block.timestamp ){
-           cliffClaimable = info.remainingClaimableCliff;
+           cliffClaimable = info.remainingToBeClaimableCliff;
 
-       }  else if(info.cliffLastWithdrawl == 0 && cliffPoolInfo[_poolId].cliffVestingTime > block.timestamp ){
-          cliffClaimable = SafeMath.mul(SafeMath.sub(block.timestamp , cliffPoolInfo[_poolId].cliffPeriod ) , info.cliffRealeaseRatePerSec);
-
-       }
-         else if(info.cliffLastWithdrawl != 0){
+       }  
+        else if( cliffPoolInfo[_poolId].cliffVestingTime > block.timestamp ){
                cliffClaimable = SafeMath.mul(SafeMath.sub( block.timestamp , info.cliffLastWithdrawl ) , info.cliffRealeaseRatePerSec);
+              secondDiff =  SafeMath.sub( block.timestamp , info.cliffLastWithdrawl );
+              releaseRate = info.cliffRealeaseRatePerSec;
 
-         }
-         else if(block.timestamp > cliffPoolInfo[_poolId].cliffVestingTime ){
-             cliffClaimable = info.remainingClaimableCliff;
-             cliffClaimable = 3;
          }
            
         }
            else cliffClaimable = 0;
 
-         return cliffClaimable;
+         return (cliffClaimable,secondDiff,releaseRate);
     }
 
 
      // function type readOnly
     // This function is used to return nonCliffclaimables for the vesting tokens
-    function nonCliffClaimable(uint256 _poolId, address _user) public view returns(uint256){
+    function nonCliffClaimable(uint256 _poolId, address _user) public view returns(uint256,uint256,uint256){
         uint256 nonCliffClaimable;
-        Vesting.UserClifInfo memory info = userClifInfo[_poolId][_user];
+        uint256 secondDiff;
+        uint256 releaseRate;
+        Vesting.UserNonClifInfo memory info = userNonClifInfo[_poolId][_user];
+        require(info.allocation > 0,"Allocation: You Don't have allocation in this pool");
+
        if(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp ){
 
           if(cliffPoolInfo[_poolId].nonCliffVestingTime < block.timestamp ){
-              nonCliffClaimable = info.remainingClaimableNonCliff;
+              nonCliffClaimable = info.remainingToBeClaimableNonCliff;
 
           }
-          else if(info.nonCliffLastWithdrawl == 0 && cliffPoolInfo[_poolId].nonCliffVestingTime > block.timestamp){
-            nonCliffClaimable = SafeMath.mul(SafeMath.sub(block.timestamp , cliffPoolInfo[_poolId].cliffPeriod ) , info.nonCliffRealeaseRatePerSec);
-
-
-        }
-         else if(info.nonCliffLastWithdrawl != 0 && cliffPoolInfo[_poolId].nonCliffVestingTime > block.timestamp){
+         else if(cliffPoolInfo[_poolId].nonCliffVestingTime > block.timestamp){
                nonCliffClaimable = SafeMath.mul(SafeMath.sub( block.timestamp , info.nonCliffLastWithdrawl ) , info.nonCliffRealeaseRatePerSec);
+               secondDiff = SafeMath.sub( block.timestamp , info.nonCliffLastWithdrawl );
+               releaseRate = info.nonCliffRealeaseRatePerSec;
 
-         
         }
-        else if(block.timestamp > cliffPoolInfo[_poolId].nonCliffVestingTime  ){
-             nonCliffClaimable = info.remainingClaimableNonCliff;
-              nonCliffClaimable  = 3;
-         }
            
            }
   
            else nonCliffClaimable = 0;
 
-         return nonCliffClaimable;
+         return (nonCliffClaimable,secondDiff,releaseRate);
     }
 
     // function type payable
     // Claim the cliff amount of the token
-    function claimCliff(uint256 _poolId) public {
+    function claimCliff(uint256 _poolId) public nonReentrant(){
         Vesting.UserClifInfo memory info = userClifInfo[_poolId][_msgSender()];
         require(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp, "Vesting: Cliff Period Is Not Over Yet");
-        uint256 transferAble = cliffClaimable(_poolId,_msgSender());
+
+         (uint256 transferAble,uint256 secondDiff, uint256 releaseRate) = cliffClaimable(_poolId,_msgSender());
         require(transferAble> 0 ,"Vesting: Invalid TransferAble");
         IERC20(cliffPoolInfo[_poolId].tokenAddress).transfer(_msgSender(),transferAble);
-        userClifInfo[_poolId][_msgSender()] = Vesting.UserClifInfo(info.allocation, info.cliffAlloc,info.nonCliffAlloc,SafeMath.add(transferAble,info.claimedAmnt ),info.tokensRelaseTime,SafeMath.sub(info.cliffAlloc,transferAble),info.remainingClaimableNonCliff,info.cliffRealeaseRatePerSec,info.nonCliffRealeaseRatePerSec, block.timestamp,info.nonCliffLastWithdrawl );
+        uint256 claimed = SafeMath.add(transferAble,info.claimedAmnt );
+        userClifInfo[_poolId][_msgSender()] = Vesting.UserClifInfo(info.allocation, info.cliffAlloc,claimed,info.tokensRelaseTime,SafeMath.sub(info.cliffAlloc,claimed),info.cliffRealeaseRatePerSec, block.timestamp );
             emit CliffClaim( _poolId,  transferAble);
 
         }
 
     // function type payable
     // Claim the nonCliff amount of the token
-    function claimNonCliff(uint256 _poolId) public {
-        Vesting.UserClifInfo memory info = userClifInfo[_poolId][_msgSender()];
+    function claimNonCliff(uint256 _poolId) public nonReentrant() {
+        Vesting.UserNonClifInfo memory info = userNonClifInfo[_poolId][_msgSender()];
         require(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp, "Vesting: Cliff Period Is Not Over Yet");
 
-        uint256 transferAble = nonCliffClaimable(_poolId,_msgSender());
+         (uint256 transferAble,uint256 secondDiff, uint256 releaseRate) = nonCliffClaimable(_poolId,_msgSender());
+         uint256 claimed = SafeMath.add(transferAble,info.claimedAmnt );
         require(transferAble> 0 ,"Vesting: Invalid TransferAble");
         IERC20(cliffPoolInfo[_poolId].tokenAddress).transfer(_msgSender(),transferAble);
-        userClifInfo[_poolId][_msgSender()] = Vesting.UserClifInfo(info.allocation, info.cliffAlloc,info.nonCliffAlloc,SafeMath.add(transferAble,info.claimedAmnt ) ,info.tokensRelaseTime,info.remainingClaimableCliff,SafeMath.sub(info.nonCliffAlloc,transferAble),info.cliffRealeaseRatePerSec,info.nonCliffRealeaseRatePerSec,info.cliffLastWithdrawl, block.timestamp );
+        userNonClifInfo[_poolId][_msgSender()] = Vesting.UserNonClifInfo(info.allocation, info.nonCliffAlloc,claimed ,info.tokensRelaseTime,SafeMath.sub(info.nonCliffAlloc,claimed),info.nonCliffRealeaseRatePerSec, block.timestamp );
         emit NonCliffClaim( _poolId, transferAble);
 
     }

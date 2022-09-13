@@ -9,8 +9,7 @@ interface Vesting {
           uint256 startDate;
           uint256 vestingTime; //in seconds
           uint256 lockTime; //time stamp
-          uint256 releaseRate; 
-        //   uint256 unlockDate; //onward in seconds
+        
           address tokenAddress;
           uint256 totalVesting;
           address[]  usersAddresses;
@@ -20,10 +19,11 @@ interface Vesting {
     
         struct UserInfo{
         uint256 allocation;    // VestingAllocation
-        uint256 claimableAmount; //calimableAmnt   
+        uint256 claimedAmount; //calimableAmnt   
         uint256 tokensRelaseTime;                      //tokensRelaseToDate    
         uint256 remaining;  // VestingAllocationCalculated
         uint256 lastWithdrawl;
+        uint256 releaseRate; 
         // bool withdrawn;   //Vested tokens
         // bool tokenWithdrawn;    // only rewards
     }
@@ -47,14 +47,20 @@ struct CliffPoolInfo {
       struct UserClifInfo {
         uint256 allocation;    // VestingAllocation
         uint256 cliffAlloc;
+        uint256 claimedAmnt; //calimableAmnt   
+        uint256 tokensRelaseTime;                      //tokensRelaseToDate    
+        uint256 remainingToBeClaimableCliff; 
+        uint256 cliffRealeaseRatePerSec;
+        uint256 cliffLastWithdrawl;
+
+    }  
+      struct UserNonClifInfo {
+        uint256 allocation;    // VestingAllocation
         uint256 nonCliffAlloc;
         uint256 claimedAmnt; //calimableAmnt   
         uint256 tokensRelaseTime;                      //tokensRelaseToDate    
-        uint256 remainingClaimableCliff; 
-        uint256 remainingClaimableNonCliff;
-        uint256 cliffRealeaseRatePerSec;
+        uint256 remainingToBeClaimableNonCliff;
         uint256 nonCliffRealeaseRatePerSec;  
-        uint256 cliffLastWithdrawl;
         uint256 nonCliffLastWithdrawl;
 
     }  
