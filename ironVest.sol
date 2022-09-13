@@ -72,12 +72,12 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     //function type payable
     // This function is used to register vesting which is without cliff
-    function addVesting(string memory _poolName, uint256 _vestingTime, uint256 _lockTime,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint[] memory _userAlloc) public onlyVester nonReentrant()  {
+    function addVesting(string memory _poolName, uint256 _vestingTime, uint256 _lockTime,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint256[] memory _userAlloc) public onlyVester nonReentrant()  {
          require(_vestingTime > block.timestamp,"Vesting: Invalid Vesting Time");
          require(_vestingTime >= _lockTime,"Vesting: Lock time must be lesser than vesting time");
          uint256 releaseRate;
          uint256 totalvesting;                                                                                                                                                                                                                                                                          
-          for(uint i=0; i<_usersAddresses.length;i++)
+          for(uint256 i=0; i<_usersAddresses.length;i++)
          {  
              totalvesting = totalvesting + _userAlloc[i];
 
@@ -150,7 +150,7 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     // function type payable
     // use to register vesting
-    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress,uint256 _totalVesting, uint256 _cliffPercentage,address[] memory _usersAddresses,uint[] memory _userAlloc) public onlyVester nonReentrant(){
+    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress,uint256 _totalVesting, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc) public onlyVester nonReentrant(){
         require(_vestingTime > block.timestamp ,"Vesting: Vesting Time Must Be Greater Than Current Time");
         require(_vestingTime > _cliffPeriod ,"Vesting: Vesting Time Time Must Be Greater Than Cliff Period");
         require(_cliffVestingTime < _vestingTime,"Vesting: Cliff Vesting Time Must Be Lesser Than Vesting Time");
@@ -160,7 +160,7 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         uint256 nonClifVestingTime = SafeMath.add(SafeMath.sub(_vestingTime , _cliffVestingTime),_cliffPeriod);
         uint256 cliffToken =SafeMath.div(SafeMath.mul(_totalVesting,_cliffPercentage),100);
         uint256 totalVesting;
-        for(uint i=0; i<_usersAddresses.length;i++)
+        for(uint256 i=0; i<_usersAddresses.length;i++)
          { 
             totalVesting = SafeMath.add(totalVesting,_userAlloc[i]);
 
