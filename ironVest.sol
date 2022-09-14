@@ -42,7 +42,6 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         string  poolName,
         uint256 startDate,
         uint256 vestingTime, 
-        uint256 lockTime, 
         uint256 releaseRate, 
         address tokenAddress,
         uint256 totalVesting,
@@ -72,9 +71,8 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     //function type payable
     // This function is used to register vesting which is without cliff
-    function addVesting(string memory _poolName, uint256 _vestingTime, uint256 _lockTime,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint256[] memory _userAlloc) public onlyVester nonReentrant()  {
+    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint256[] memory _userAlloc) public onlyVester nonReentrant()  {
          require(_vestingTime > block.timestamp,"Vesting: Invalid Vesting Time");
-         require(_vestingTime >= _lockTime,"Vesting: Lock time must be lesser than vesting time");
          uint256 releaseRate;
          uint256 totalvesting;                                                                                                                                                                                                                                                                          
           for(uint256 i=0; i<_usersAddresses.length;i++)
@@ -82,15 +80,15 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
              totalvesting = totalvesting + _userAlloc[i];
 
         require(_totalVesting >= _userAlloc[i],"Vesting: Total Vesting is Invalid");
-        uint256 releaseRate = SafeMath.div(_userAlloc[i] ,(SafeMath.sub(_vestingTime,_lockTime)));
-        poolInfo[vestingPoolSize] = Vesting.PoolInfo(_poolName, block.timestamp,_vestingTime,_lockTime,_tokenAddress,_totalVesting, _usersAddresses,_userAlloc);
-        userInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserInfo(_userAlloc[i],0,_lockTime,_userAlloc[i],_lockTime,SafeMath.div(_userAlloc[i],(SafeMath.sub(_vestingTime,_lockTime))));
+        uint256 releaseRate = SafeMath.div(_userAlloc[i] ,(SafeMath.sub(_vestingTime,block.timestamp)));
+        poolInfo[vestingPoolSize] = Vesting.PoolInfo(_poolName, block.timestamp,_vestingTime,_tokenAddress,_totalVesting, _usersAddresses,_userAlloc);
+        userInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserInfo(_userAlloc[i],0,_userAlloc[i],block.timestamp,SafeMath.div(_userAlloc[i],(SafeMath.sub(_vestingTime,block.timestamp))));
          } 
         require(_totalVesting == totalvesting,"Vesting: Total Vesting is Invalid");
 
         IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),_totalVesting);
         cliff[vestingPoolSize] = false;
-        emit AddVesting(vestingPoolSize,_poolName,block.timestamp,_vestingTime, _lockTime, releaseRate, _tokenAddress,_totalVesting,_usersAddresses,_userAlloc);
+        emit AddVesting(vestingPoolSize,_poolName,block.timestamp,_vestingTime, releaseRate, _tokenAddress,_totalVesting,_usersAddresses,_userAlloc);
         vestingPoolSize = vestingPoolSize + 1;
   
         
@@ -115,7 +113,7 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         // require(poolInfo[_poolId].lockTime < block.timestamp,"Invalid Withdrarl: You can't withdraw before release date");
 
         releaseRate =  info.releaseRatePerSec;
-       if (poolInfo[_poolId].lockTime < block.timestamp){
+       if (poolInfo[_poolId].startDate < block.timestamp){
        
         if(poolInfo[_poolId].vestingTime < block.timestamp ){
 
@@ -139,10 +137,10 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         (uint256 transferAble,uint256 secDiff, uint256 releaseRate) = claimable(_poolId,_msgSender());
         IERC20(poolInfo[_poolId].tokenAddress).transfer(_msgSender(),transferAble);
          Vesting.UserInfo memory info = userInfo[_poolId][_msgSender()];
-        require(block.timestamp > poolInfo[_poolId].lockTime ,"Vesting: Lock Time Is Not Over Yet");
+        require(block.timestamp > poolInfo[_poolId].startDate ,"Vesting: Lock Time Is Not Over Yet");
         require(transferAble > 0 ,"Vesting: Invalid TransferAble");
         uint256 claimed = SafeMath.add(info.claimedAmount , transferAble);
-        userInfo[_poolId][_msgSender()] = Vesting.UserInfo(info.allocation, claimed, info.tokensRelaseTime,SafeMath.sub(info.allocation,claimed),block.timestamp, info.releaseRatePerSec );
+        userInfo[_poolId][_msgSender()] = Vesting.UserInfo(info.allocation, claimed,SafeMath.sub(info.allocation,claimed),block.timestamp, info.releaseRatePerSec );
         emit Claim(_poolId,transferAble,_msgSender(),SafeMath.sub(info.allocation,claimed));
         
 
@@ -155,13 +153,13 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         require(_vestingTime > _cliffPeriod ,"Vesting: Vesting Time Time Must Be Greater Than Cliff Period");
         require(_cliffVestingTime < _vestingTime,"Vesting: Cliff Vesting Time Must Be Lesser Than Vesting Time");
         require(_cliffVestingTime > _cliffPeriod,"Vesting: Cliff Vesting Time Must Be Greater Than Cliff Period");
-        require(_cliffPercentage < 50,"Percentage:Percentage Should Be less Than  50%");
+        require(_cliffPercentage <= 50,"Percentage:Percentage Should Be less Than  50%");
 
         uint256 nonClifVestingTime = SafeMath.add(SafeMath.sub(_vestingTime , _cliffVestingTime),_cliffPeriod);
         uint256 cliffToken =SafeMath.div(SafeMath.mul(_totalVesting,_cliffPercentage),100);
         uint256 totalVesting;
         for(uint256 i=0; i<_usersAddresses.length;i++)
-         { 
+         {
             totalVesting = SafeMath.add(totalVesting,_userAlloc[i]);
 
             cliffPoolInfo[vestingPoolSize] = Vesting.CliffPoolInfo(_poolName, block.timestamp,_vestingTime,_cliffVestingTime,nonClifVestingTime,_cliffPeriod,_tokenAddress,_totalVesting,_cliffPercentage,_usersAddresses,_userAlloc);

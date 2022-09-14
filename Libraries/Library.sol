@@ -8,7 +8,6 @@ interface Vesting {
           string  poolName;
           uint256 startDate;
           uint256 vestingTime; //in seconds
-          uint256 lockTime; //time stamp       
           address tokenAddress;
           uint256 totalVesting;
           address[]  usersAddresses;
@@ -19,7 +18,6 @@ interface Vesting {
         struct UserInfo{
         uint256 allocation;    // VestingAllocation
         uint256 claimedAmount; //calimableAmnt   
-        uint256 tokensRelaseTime;                      //tokensRelaseToDate    
         uint256 remainingToBeClaimable;  // VestingAllocationCalculated
         uint256 lastWithdrawl;
         uint256 releaseRatePerSec; 
