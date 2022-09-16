@@ -327,14 +327,6 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
     }
 
 
-    function messageHash(
-        string memory _poolName,
-        address  _tokenAddress,
-        uint256 _totalVesting
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_poolName,_tokenAddress,_totalVesting));
-    }
-
     // set new signer
     function setSigner(address _signer) public onlyAdmin(){
         signer = _signer;
