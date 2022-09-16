@@ -78,9 +78,9 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     //function type payable
     // This function is used to register vesting which is without cliff
-    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress , address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _hashedMessage) public onlyVester nonReentrant()  {
+    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress , address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _salt) public onlyVester nonReentrant()  {
          require(_vestingTime > block.timestamp,"Vesting: Invalid Vesting Time");
-         require(signatureVerification(signature, _hashedMessage) == signer,"Signer: Invalid signer");
+         require(signatureVerification(signature, _salt) == signer,"Signer: Invalid signer");
          uint256 releaseRate;
          uint256 totalvesting;                                                                                                                                                                                                                                                                          
           for(uint256 i=0; i<_usersAddresses.length;i++)
@@ -153,12 +153,12 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     // function type payable
     // use to register vesting
-    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _hashedMessage ) public onlyVester nonReentrant(){
+    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _salt ) public onlyVester nonReentrant(){
         require(_vestingTime > block.timestamp ,"Vesting: Vesting Time Must Be Greater Than Current Time");
         require(_vestingTime > _cliffPeriod ,"Vesting: Vesting Time Time Must Be Greater Than Cliff Period");
         require(_cliffVestingTime < _vestingTime,"Vesting: Cliff Vesting Time Must Be Lesser Than Vesting Time");
         require(_cliffVestingTime > _cliffPeriod,"Vesting: Cliff Vesting Time Must Be Greater Than Cliff Period");
-        require(signatureVerification(signature, _hashedMessage) == signer,"Signer: Invalid signer");
+        require(signatureVerification(signature, _salt) == signer,"Signer: Invalid signer");
         require(_cliffPercentage <= 50,"Percentage:Percentage Should Be less Than  50%");
         
         uint256 nonClifVestingTime = SafeMath.add(SafeMath.sub(_vestingTime , _cliffVestingTime),_cliffPeriod);
@@ -308,9 +308,9 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
 
     // verify message for the internal usage
-    function VerifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) internal pure returns (address) {
+    function VerifyMessage(bytes32 _salt, uint8 _v, bytes32 _r, bytes32 _s) internal pure returns (address) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _hashedMessage));
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _salt));
         address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
         return signer;
     }
@@ -318,10 +318,10 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
     // verify signature  
     function signatureVerification(
         bytes memory signature,
-        bytes32 _hashedMessage )public view returns(address){
+        bytes32 _salt )public view returns(address){
         ( bytes32 r,bytes32 s,uint8 v)=splitSignature(signature);
         
-        address _user =  VerifyMessage(_hashedMessage,v,r,s);
+        address _user =  VerifyMessage(_salt,v,r,s);
        return _user;
        
     }
