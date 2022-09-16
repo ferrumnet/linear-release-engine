@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "./Libraries/Library.sol";
 
 contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
@@ -11,11 +12,13 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
     
     uint256 public vestingPoolSize = 0;
     string public vestingContractName;
+    address public signer;
 
-    constructor(string memory _vestingName){
+    constructor(string memory _vestingName,address _signer) {
      vestingContractName = _vestingName;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(VESTER_ROLE, msg.sender);
+        signer = _signer;
 
     }
 
@@ -23,9 +26,14 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
 
         modifier onlyVester() {
-        require(hasRole(VESTER_ROLE, _msgSender()), "Not a manager role");
+        require(hasRole(VESTER_ROLE, _msgSender()), "AccessDenied: Only Vester Call This Function");
         _;
-    }   
+    }  
+
+           modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "AccessDenied: Only Admin Call This Function");
+        _;
+    }    
 
     // Mappings
     mapping(uint256 => bool) public cliff;
@@ -51,7 +59,6 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
     event CliffAddVesting(
         uint256 poolId,
         string  poolName,
-        uint256 startDate, 
         uint256 vestingTime,
         uint256 cliffVestingTime,
         uint256 nonCliffVestingTime, 
@@ -71,24 +78,22 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     //function type payable
     // This function is used to register vesting which is without cliff
-    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress,uint256 _totalVesting, address[] memory _usersAddresses,uint256[] memory _userAlloc) public onlyVester nonReentrant()  {
+    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress , address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _hashedMessage) public onlyVester nonReentrant()  {
          require(_vestingTime > block.timestamp,"Vesting: Invalid Vesting Time");
+         require(signatureVerification(signature, _hashedMessage) == signer,"Signer: Invalid signer");
          uint256 releaseRate;
          uint256 totalvesting;                                                                                                                                                                                                                                                                          
           for(uint256 i=0; i<_usersAddresses.length;i++)
          {  
-             totalvesting = totalvesting + _userAlloc[i];
+             totalvesting  += _userAlloc[i];
 
-        require(_totalVesting >= _userAlloc[i],"Vesting: Total Vesting is Invalid");
         uint256 releaseRate = SafeMath.div(_userAlloc[i] ,(SafeMath.sub(_vestingTime,block.timestamp)));
-        poolInfo[vestingPoolSize] = Vesting.PoolInfo(_poolName, block.timestamp,_vestingTime,_tokenAddress,_totalVesting, _usersAddresses,_userAlloc);
+        poolInfo[vestingPoolSize] = Vesting.PoolInfo(_poolName, block.timestamp,_vestingTime,_tokenAddress,totalvesting, _usersAddresses,_userAlloc);
         userInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserInfo(_userAlloc[i],0,_userAlloc[i],block.timestamp,SafeMath.div(_userAlloc[i],(SafeMath.sub(_vestingTime,block.timestamp))));
          } 
-        require(_totalVesting == totalvesting,"Vesting: Total Vesting is Invalid");
-
-        IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),_totalVesting);
+        IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),totalvesting);
         cliff[vestingPoolSize] = false;
-        emit AddVesting(vestingPoolSize,_poolName,block.timestamp,_vestingTime, releaseRate, _tokenAddress,_totalVesting,_usersAddresses,_userAlloc);
+        emit AddVesting(vestingPoolSize,_poolName,block.timestamp,_vestingTime, releaseRate, _tokenAddress,totalvesting,_usersAddresses,_userAlloc);
         vestingPoolSize = vestingPoolSize + 1;
   
         
@@ -148,31 +153,30 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     // function type payable
     // use to register vesting
-    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress,uint256 _totalVesting, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc) public onlyVester nonReentrant(){
+    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _hashedMessage ) public onlyVester nonReentrant(){
         require(_vestingTime > block.timestamp ,"Vesting: Vesting Time Must Be Greater Than Current Time");
         require(_vestingTime > _cliffPeriod ,"Vesting: Vesting Time Time Must Be Greater Than Cliff Period");
         require(_cliffVestingTime < _vestingTime,"Vesting: Cliff Vesting Time Must Be Lesser Than Vesting Time");
         require(_cliffVestingTime > _cliffPeriod,"Vesting: Cliff Vesting Time Must Be Greater Than Cliff Period");
+        require(signatureVerification(signature, _hashedMessage) == signer,"Signer: Invalid signer");
         require(_cliffPercentage <= 50,"Percentage:Percentage Should Be less Than  50%");
-
+        
         uint256 nonClifVestingTime = SafeMath.add(SafeMath.sub(_vestingTime , _cliffVestingTime),_cliffPeriod);
-        uint256 cliffToken =SafeMath.div(SafeMath.mul(_totalVesting,_cliffPercentage),100);
         uint256 totalVesting;
         for(uint256 i=0; i<_usersAddresses.length;i++)
          {
-            totalVesting = SafeMath.add(totalVesting,_userAlloc[i]);
+            totalVesting += _userAlloc[i];
 
-            cliffPoolInfo[vestingPoolSize] = Vesting.CliffPoolInfo(_poolName, block.timestamp,_vestingTime,_cliffVestingTime,nonClifVestingTime,_cliffPeriod,_tokenAddress,_totalVesting,_cliffPercentage,_usersAddresses,_userAlloc);
+            cliffPoolInfo[vestingPoolSize] = Vesting.CliffPoolInfo(_poolName, block.timestamp,_vestingTime,_cliffVestingTime,SafeMath.add(SafeMath.sub(_vestingTime , _cliffVestingTime),_cliffPeriod),_cliffPeriod,_tokenAddress,totalVesting,_cliffPercentage,_usersAddresses,_userAlloc);
 
             userClifInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserClifInfo(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100),0,_cliffPeriod,SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100),SafeMath.div(SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100) ,SafeMath.sub(_cliffVestingTime,_cliffPeriod)),_cliffPeriod);
             userNonClifInfo[vestingPoolSize][_usersAddresses[i]] = Vesting.UserNonClifInfo(_userAlloc[i],SafeMath.sub(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),0,_cliffPeriod,SafeMath.sub(_userAlloc[i],SafeMath.div((SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),SafeMath.div(SafeMath.sub(_userAlloc[i],SafeMath.div( (SafeMath.mul(_userAlloc[i],_cliffPercentage)),100)),SafeMath.sub(nonClifVestingTime, _cliffPeriod)),_cliffPeriod);
 
         }
-        require(_totalVesting == totalVesting,"Cliff Vesting: Total Vesting is Invalid");
-        IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),_totalVesting);
+        IERC20(_tokenAddress).transferFrom(_msgSender(),address(this),totalVesting);
         cliff[vestingPoolSize] = true;  
         
-    emit  CliffAddVesting(vestingPoolSize,_poolName,block.timestamp,_vestingTime,_cliffVestingTime, nonClifVestingTime, _cliffPeriod,_tokenAddress,_totalVesting, _cliffPercentage,_usersAddresses,_userAlloc);
+    emit  CliffAddVesting(vestingPoolSize,_poolName,_vestingTime,_cliffVestingTime, nonClifVestingTime, _cliffPeriod,_tokenAddress,totalVesting, _cliffPercentage,_usersAddresses,_userAlloc);
 
         vestingPoolSize = vestingPoolSize + 1;
           
@@ -266,6 +270,74 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
         IERC20(cliffPoolInfo[_poolId].tokenAddress).transfer(_msgSender(),transferAble);
         userNonClifInfo[_poolId][_msgSender()] = Vesting.UserNonClifInfo(info.allocation, info.nonCliffAlloc,claimed ,info.tokensRelaseTime,SafeMath.sub(info.nonCliffAlloc,claimed),info.nonCliffRealeaseRatePerSec, block.timestamp );
         emit NonCliffClaim(_poolId,transferAble,_msgSender(),SafeMath.sub(info.nonCliffAlloc,claimed));
+
+    }
+
+
+    function splitSignature(bytes memory sig)
+        internal
+        pure
+        returns (
+            bytes32 r,
+            bytes32 s,
+            uint8 v
+        )
+    {
+        require(sig.length == 65, "invalid signature length");
+
+        assembly {
+            /*
+            First 32 bytes stores the length of the signature
+
+            add(sig, 32) = pointer of sig + 32
+            effectively, skips first 32 bytes of signature
+
+            mload(p) loads next 32 bytes starting at the memory address p into memory
+            */
+
+            // first 32 bytes, after the length prefix
+            r := mload(add(sig, 32))
+            // second 32 bytes
+            s := mload(add(sig, 64))
+            // final byte (first byte of the next 32 bytes)
+            v := byte(0, mload(add(sig, 96)))
+        }
+
+        // implicitly return (r, s, v)
+    }
+
+
+    // verify message for the internal usage
+    function VerifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) internal pure returns (address) {
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _hashedMessage));
+        address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
+        return signer;
+    }
+
+    // verify signature  
+    function signatureVerification(
+        bytes memory signature,
+        bytes32 _hashedMessage )public view returns(address){
+        ( bytes32 r,bytes32 s,uint8 v)=splitSignature(signature);
+        
+        address _user =  VerifyMessage(_hashedMessage,v,r,s);
+       return _user;
+       
+    }
+
+
+    function messageHash(
+        string memory _poolName,
+        address  _tokenAddress,
+        uint256 _totalVesting
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_poolName,_tokenAddress,_totalVesting));
+    }
+
+    // set new signer
+    function setSigner(address _signer) public onlyAdmin(){
+        signer = _signer;
 
     }
 
