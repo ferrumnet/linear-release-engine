@@ -1,28 +1,26 @@
-pragma solidity ^0.8.12;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.17;
  
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./Libraries/Library.sol";
 
-contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
+contract VestingHarvestContarct is AccessControl ,Initializable, ReentrancyGuardUpgradeable {
 
     
-    uint256 public vestingPoolSize = 0;
     string public vestingContractName;
+    uint256 public vestingPoolSize;
     address public signer;
-
-    constructor(string memory _vestingName,address _signer) {
-     vestingContractName = _vestingName;
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(VESTER_ROLE, msg.sender);
-        signer = _signer;
-
-    }
-
+    bool private initialized;
     bytes32 public constant VESTER_ROLE = keccak256("VESTER_ROLE");
+
+
+    constructor(){}
 
 
         modifier onlyVester() {
@@ -74,11 +72,22 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
     event NonCliffClaim(uint256 poolId, uint256 claimed, address beneficiary, uint256 remaining);
 
 
+    // contract initialization with constructor values
+    function initialize(string memory _vestingName,address _signer) public {
+        require(!initialized, "Contract instance has already been initialized");
+        vestingContractName = _vestingName;
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(VESTER_ROLE, msg.sender);
+        signer = _signer;
+                initialized = true;
+                uint256 vestingPoolSize = 0;
+
+    }
 
 
     //function type payable
     // This function is used to register vesting which is without cliff
-    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress , address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _salt) public onlyVester nonReentrant()  {
+    function addVesting(string memory _poolName, uint256 _vestingTime,address _tokenAddress , address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _salt) public onlyVester  nonReentrant() {
          require(_vestingTime > block.timestamp,"Vesting: Invalid Vesting Time");
          require(signatureVerification(signature, _salt) == signer,"Signer: Invalid signer");
          uint256 releaseRate;
@@ -153,7 +162,7 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     // function type payable
     // use to register vesting
-    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _salt ) public onlyVester nonReentrant(){
+    function addCliffVesting(string memory _poolName,uint256 _vestingTime, uint256 _cliffVestingTime,uint256 _cliffPeriod,address _tokenAddress, uint256 _cliffPercentage,address[] memory _usersAddresses,uint256[] memory _userAlloc, bytes memory signature,bytes32 _salt ) public onlyVester nonReentrant() {
         require(_vestingTime > block.timestamp ,"Vesting: Vesting Time Must Be Greater Than Current Time");
         require(_vestingTime > _cliffPeriod ,"Vesting: Vesting Time Time Must Be Greater Than Cliff Period");
         require(_cliffVestingTime < _vestingTime,"Vesting: Cliff Vesting Time Must Be Lesser Than Vesting Time");
@@ -260,7 +269,7 @@ contract VestingHarvestContarct is AccessControl, ReentrancyGuard {
 
     // function type payable
     // Claim the nonCliff amount of the token
-    function claimNonCliff(uint256 _poolId) public nonReentrant() {
+    function claimNonCliff(uint256 _poolId) public nonReentrant()  {
         Vesting.UserNonClifInfo memory info = userNonClifInfo[_poolId][_msgSender()];
         require(cliffPoolInfo[_poolId].cliffPeriod < block.timestamp, "Vesting: Cliff Period Is Not Over Yet");
 
