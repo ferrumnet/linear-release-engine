@@ -3,7 +3,7 @@
 pragma solidity ^0.8.12;
 
 
-interface Vesting {
+interface IVesting {
 
 
         struct PoolInfo {
