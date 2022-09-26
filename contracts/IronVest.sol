@@ -44,6 +44,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         public UserCliffInfo;
     mapping(uint256 => mapping(address => IIronVest.UserNonCliffInfo))
         public userNonCliffInfo;
+    mapping(bytes32 => bool) public usedHashes;
 
     /*
     @dev Creating events for all necessary values while adding simple vesting.
@@ -130,6 +131,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         _;
     }
 
+    // constructor () EIP712('NAME', '0.0001') { }
+
     /*
     @dev deploy the contract by upgradeable proxy by any framewrok.
     @param vesting name and signer address.
@@ -169,7 +172,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             "IIronVest: Invalid IIronVest Time"
         );
         require(
-            signatureVerification(signature, _salt) == signer,
+            signatureVerification(signature, _poolName, _tokenAddress) ==
+                signer,
             "Signer: Invalid signer"
         );
         uint256 totalVesting;
@@ -220,7 +224,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     */
     function claim(uint256 _poolId) external nonReentrant {
         uint256 transferAble = claimable(_poolId, _msgSender());
-         require(
+        require(
             block.timestamp > poolInfo[_poolId].startTime,
             "IIronVest: Lock Time Is Not Over Yet"
         );
@@ -233,7 +237,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         uint256 claimed = (info.claimedAmount + transferAble);
         uint256 remainingToBeClaimable = info.allocation - claimed;
         userInfo[_poolId][_msgSender()].claimedAmount = claimed;
-        userInfo[_poolId][_msgSender()].remainingToBeClaimable = remainingToBeClaimable;
+        userInfo[_poolId][_msgSender()]
+            .remainingToBeClaimable = remainingToBeClaimable;
         userInfo[_poolId][_msgSender()].lastWithdrawal = block.timestamp;
 
         emit Claim(_poolId, transferAble, _msgSender(), remainingToBeClaimable);
@@ -278,7 +283,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             "IIronVest: Cliff IIronVest Time Must Be Greater Than Cliff Period"
         );
         require(
-            signatureVerification(signature, _salt) == signer,
+            signatureVerification(signature, _poolName, _tokenAddress) ==
+                signer,
             "Signer: Invalid signer"
         );
         require(
@@ -381,8 +387,10 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         uint256 claimed = transferAble + info.claimedAmnt;
         uint256 remainingTobeClaimable = info.cliffAlloc - claimed;
         UserCliffInfo[_poolId][_msgSender()].claimedAmnt = claimed;
-        UserCliffInfo[_poolId][_msgSender()].remainingToBeClaimableCliff = remainingTobeClaimable;
-        UserCliffInfo[_poolId][_msgSender()].cliffLastWithdrawal = block.timestamp;
+        UserCliffInfo[_poolId][_msgSender()]
+            .remainingToBeClaimableCliff = remainingTobeClaimable;
+        UserCliffInfo[_poolId][_msgSender()].cliffLastWithdrawal = block
+            .timestamp;
 
         emit CliffClaim(
             _poolId,
@@ -417,8 +425,10 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         );
         uint256 remainingTobeClaimable = info.nonCliffAlloc - claimed;
         userNonCliffInfo[_poolId][_msgSender()].claimedAmnt = claimed;
-        userNonCliffInfo[_poolId][_msgSender()].remainingToBeClaimableNonCliff = remainingTobeClaimable;
-        userNonCliffInfo[_poolId][_msgSender()].nonCliffLastWithdrawal = block.timestamp;
+        userNonCliffInfo[_poolId][_msgSender()]
+            .remainingToBeClaimableNonCliff = remainingTobeClaimable;
+        userNonCliffInfo[_poolId][_msgSender()].nonCliffLastWithdrawal = block
+            .timestamp;
         emit NonCliffClaim(
             _poolId,
             transferAble,
@@ -512,7 +522,9 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         );
 
         if (cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp) {
-            if (cliffPoolInfo[_poolId].nonCliffVestingEndTime > block.timestamp) {
+            if (
+                cliffPoolInfo[_poolId].nonCliffVestingEndTime > block.timestamp
+            ) {
                 nonCliffClaimable =
                     (block.timestamp - info.nonCliffLastWithdrawal) *
                     info.nonCliffReleaseRatePerSec;
@@ -591,7 +603,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     @param user address whom admin want to be a signer.
     */
     function setSigner(address _signer) public onlyAdmin {
-        require(_signer != address(0x00),"Invalid: Signer Address Is Invalid");
+        require(_signer != address(0x00), "Invalid: Signer Address Is Invalid");
         signer = _signer;
     }
 
@@ -600,12 +612,16 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     @param sig : signature provided signed by signer
     @return Address of signer who signed the message hash
     */
-    function signatureVerification(bytes memory signature, bytes32 _salt)
-        public
-        view
-        returns (address)
-    {
+    function signatureVerification(
+        bytes memory signature,
+        string memory _poolName,
+        address _tokenAddress
+    ) public view returns (address) {
+        bytes32 _salt = keccak256(
+            abi.encodePacked(_poolName, _tokenAddress, block.chainid)
+        );
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
+        require(!usedHashes[_salt], "Message already used");
 
         address _user = verifyMessage(_salt, v, r, s);
         return _user;
@@ -675,4 +691,17 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         return signer;
     }
 
+    function hashMesage(
+        bytes32 _salt,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    ) internal pure returns (address) {
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHashMessage = keccak256(
+            abi.encodePacked(prefix, _salt)
+        );
+        address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
+        return signer;
+    }
 }
