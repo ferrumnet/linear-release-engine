@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
@@ -17,11 +16,7 @@ import "./Libraries/IIronVest.sol";
     @notice This contract contains the power of accesscontrol.    
     Have fun reading it. Hopefully it's bug-free. God Bless.
     */
-contract VestingHarvestContarct is
-    AccessControl,
-    Initializable,
-    ReentrancyGuardUpgradeable
-{
+contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     // Declaration of token interface with SafeErc20.
     using SafeERC20 for IERC20;
     // Public variable to strore contract name.
@@ -39,16 +34,16 @@ contract VestingHarvestContarct is
     // Cliff mapping with the check if the specific pool relate to the cliff vesting or not.
     mapping(uint256 => bool) public cliff;
     // Pool information against specific poolid for simple vesting.
-    mapping(uint256 => IVesting.PoolInfo) public poolInfo;
+    mapping(uint256 => IIronVest.PoolInfo) poolInfo;
     // Pool information against specific poolid for cliff vesting.
-    mapping(uint256 => IVesting.CliffPoolInfo) public cliffPoolInfo;
+    mapping(uint256 => IIronVest.CliffPoolInfo) cliffPoolInfo;
     // Double mapping to check user information by address and poolid for simple vesting.
-    mapping(uint256 => mapping(address => IVesting.UserInfo)) public userInfo;
+    mapping(uint256 => mapping(address => IIronVest.UserInfo)) public userInfo;
     // Double mapping to check user information by address and poolid for cliff vesting.
-    mapping(uint256 => mapping(address => IVesting.UserClifInfo))
-        public userClifInfo;
-    mapping(uint256 => mapping(address => IVesting.UserNonClifInfo))
-        public userNonClifInfo;
+    mapping(uint256 => mapping(address => IIronVest.UserCliffInfo))
+        public UserCliffInfo;
+    mapping(uint256 => mapping(address => IIronVest.UserNonCliffInfo))
+        public userNonCliffInfo;
 
     /*
     @dev Creating events for all necessary values while adding simple vesting.
@@ -58,10 +53,10 @@ contract VestingHarvestContarct is
         address indexed vester,
         uint256 indexed poolId,
         string poolName,
-        uint256 startDate,
-        uint256 vestingTime,
+        uint256 startTime,
+        uint256 vestingEndTime,
         address tokenAddress,
-        uint256 totalVesting,
+        uint256 totalVestedTokens,
         address[] usersAddresses,
         uint256[] usersAlloc
     );
@@ -74,10 +69,10 @@ contract VestingHarvestContarct is
         address indexed vester,
         uint256 indexed poolId,
         string poolName,
-        uint256 vestingTime,
-        uint256 cliffVestingTime,
-        uint256 nonCliffVestingTime,
-        uint256 cliffPeriod,
+        uint256 vestingEndTime,
+        uint256 cliffVestingEndTime,
+        uint256 nonCliffVestingEndTime,
+        uint256 cliffPeriodEndTime,
         address tokenAddress,
         uint256 totalVestedTokens,
         address[] usersAddresses,
@@ -171,16 +166,16 @@ contract VestingHarvestContarct is
     ) external onlyVester nonReentrant {
         require(
             _vestingTime > block.timestamp,
-            "IVesting: Invalid IVesting Time"
+            "IIronVest: Invalid IIronVest Time"
         );
         require(
             signatureVerification(signature, _salt) == signer,
             "Signer: Invalid signer"
         );
-        uint256 totalvesting;
+        uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
-            totalvesting += _userAlloc[i];
-            userInfo[vestingPoolSize][_usersAddresses[i]] = IVesting.UserInfo(
+            totalVesting += _userAlloc[i];
+            userInfo[vestingPoolSize][_usersAddresses[i]] = IIronVest.UserInfo(
                 _userAlloc[i],
                 0,
                 _userAlloc[i],
@@ -188,19 +183,19 @@ contract VestingHarvestContarct is
                 _userAlloc[i] / _vestingTime - block.timestamp
             );
         }
-        poolInfo[vestingPoolSize] = IVesting.PoolInfo(
+        poolInfo[vestingPoolSize] = IIronVest.PoolInfo(
             _poolName,
             block.timestamp,
             _vestingTime,
             _tokenAddress,
-            totalvesting,
+            totalVesting,
             _usersAddresses,
             _userAlloc
         );
         IERC20(_tokenAddress).safeTransferFrom(
             _msgSender(),
             address(this),
-            totalvesting
+            totalVesting
         );
         cliff[vestingPoolSize] = false;
         emit AddVesting(
@@ -210,7 +205,7 @@ contract VestingHarvestContarct is
             block.timestamp,
             _vestingTime,
             _tokenAddress,
-            totalvesting,
+            totalVesting,
             _usersAddresses,
             _userAlloc
         );
@@ -225,25 +220,22 @@ contract VestingHarvestContarct is
     */
     function claim(uint256 _poolId) external nonReentrant {
         uint256 transferAble = claimable(_poolId, _msgSender());
+         require(
+            block.timestamp > poolInfo[_poolId].startTime,
+            "IIronVest: Lock Time Is Not Over Yet"
+        );
+        require(transferAble > 0, "IIronVest: Invalid TransferAble");
         IERC20(poolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
-        IVesting.UserInfo memory info = userInfo[_poolId][_msgSender()];
-        require(
-            block.timestamp > poolInfo[_poolId].startDate,
-            "IVesting: Lock Time Is Not Over Yet"
-        );
-        require(transferAble > 0, "IVesting: Invalid TransferAble");
+        IIronVest.UserInfo memory info = userInfo[_poolId][_msgSender()];
         uint256 claimed = (info.claimedAmount + transferAble);
         uint256 remainingToBeClaimable = info.allocation - claimed;
-        userInfo[_poolId][_msgSender()] = IVesting.UserInfo(
-            info.allocation,
-            claimed,
-            remainingToBeClaimable,
-            block.timestamp,
-            info.releaseRatePerSec
-        );
+        userInfo[_poolId][_msgSender()].claimedAmount = claimed;
+        userInfo[_poolId][_msgSender()].remainingToBeClaimable = remainingToBeClaimable;
+        userInfo[_poolId][_msgSender()].lastWithdrawal = block.timestamp;
+
         emit Claim(_poolId, transferAble, _msgSender(), remainingToBeClaimable);
     }
 
@@ -275,15 +267,15 @@ contract VestingHarvestContarct is
     ) external onlyVester nonReentrant {
         require(
             _vestingTime > block.timestamp,
-            "IVesting: IVesting Time Must Be Greater Than Current Time"
+            "IIronVest: IIronVest Time Must Be Greater Than Current Time"
         );
         require(
             _cliffVestingTime < _vestingTime,
-            "IVesting: Cliff IVesting Time Must Be Lesser Than IVesting Time"
+            "IIronVest: Cliff IIronVest Time Must Be Lesser Than IIronVest Time"
         );
         require(
             _cliffVestingTime > _cliffPeriod,
-            "IVesting: Cliff IVesting Time Must Be Greater Than Cliff Period"
+            "IIronVest: Cliff IIronVest Time Must Be Greater Than Cliff Period"
         );
         require(
             signatureVerification(signature, _salt) == signer,
@@ -298,15 +290,15 @@ contract VestingHarvestContarct is
             "Percentage:Percentage Should Be More Than  1%"
         );
 
-        uint256 nonClifVestingTime = (_vestingTime - _cliffVestingTime) +
+        uint256 nonCliffVestingEndTime = (_vestingTime - _cliffVestingTime) +
             _cliffPeriod;
         uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
             uint256 cliffAlloc = (_userAlloc[i] * _cliffPercentage) / 100;
             totalVesting += _userAlloc[i];
             uint256 nonCliffReaminingTobeclaimable = _userAlloc[i] - cliffAlloc;
-            userClifInfo[vestingPoolSize][_usersAddresses[i]] = IVesting
-                .UserClifInfo(
+            UserCliffInfo[vestingPoolSize][_usersAddresses[i]] = IIronVest
+                .UserCliffInfo(
                     _userAlloc[i],
                     cliffAlloc,
                     0,
@@ -315,19 +307,19 @@ contract VestingHarvestContarct is
                     (cliffAlloc) / (_cliffVestingTime - _cliffPeriod),
                     _cliffPeriod
                 );
-            userNonClifInfo[vestingPoolSize][_usersAddresses[i]] = IVesting
-                .UserNonClifInfo(
+            userNonCliffInfo[vestingPoolSize][_usersAddresses[i]] = IIronVest
+                .UserNonCliffInfo(
                     _userAlloc[i],
                     nonCliffReaminingTobeclaimable,
                     0,
                     _cliffPeriod,
                     nonCliffReaminingTobeclaimable,
                     (_userAlloc[i] - (cliffAlloc)) /
-                        (nonClifVestingTime - _cliffPeriod),
+                        (nonCliffVestingEndTime - _cliffPeriod),
                     _cliffPeriod
                 );
         }
-        cliffPoolInfo[vestingPoolSize] = IVesting.CliffPoolInfo(
+        cliffPoolInfo[vestingPoolSize] = IIronVest.CliffPoolInfo(
             _poolName,
             block.timestamp,
             _vestingTime,
@@ -353,7 +345,7 @@ contract VestingHarvestContarct is
             _poolName,
             _vestingTime,
             _cliffVestingTime,
-            nonClifVestingTime,
+            nonCliffVestingEndTime,
             _cliffPeriod,
             _tokenAddress,
             totalVesting,
@@ -372,29 +364,26 @@ contract VestingHarvestContarct is
     @notice Secured by nonReentrant.
     */
     function claimCliff(uint256 _poolId) external nonReentrant {
-        IVesting.UserClifInfo memory info = userClifInfo[_poolId][_msgSender()];
+        IIronVest.UserCliffInfo memory info = UserCliffInfo[_poolId][
+            _msgSender()
+        ];
         require(
-            cliffPoolInfo[_poolId].cliffPeriod < block.timestamp,
-            "IVesting: Cliff Period Is Not Over Yet"
+            cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
+            "IIronVest: Cliff Period Is Not Over Yet"
         );
 
         uint256 transferAble = cliffClaimable(_poolId, _msgSender());
-        require(transferAble > 0, "IVesting: Invalid TransferAble");
+        require(transferAble > 0, "IIronVest: Invalid TransferAble");
         IERC20(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
         uint256 claimed = transferAble + info.claimedAmnt;
         uint256 remainingTobeClaimable = info.cliffAlloc - claimed;
-        userClifInfo[_poolId][_msgSender()] = IVesting.UserClifInfo(
-            info.allocation,
-            info.cliffAlloc,
-            claimed,
-            info.tokensRelaseTime,
-            remainingTobeClaimable,
-            info.cliffRealeaseRatePerSec,
-            block.timestamp
-        );
+        UserCliffInfo[_poolId][_msgSender()].claimedAmnt = claimed;
+        UserCliffInfo[_poolId][_msgSender()].remainingToBeClaimableCliff = remainingTobeClaimable;
+        UserCliffInfo[_poolId][_msgSender()].cliffLastWithdrawal = block.timestamp;
+
         emit CliffClaim(
             _poolId,
             transferAble,
@@ -411,31 +400,25 @@ contract VestingHarvestContarct is
     @notice Secured by nonReentrant.
     */
     function claimNonCliff(uint256 _poolId) external nonReentrant {
-        IVesting.UserNonClifInfo memory info = userNonClifInfo[_poolId][
+        IIronVest.UserNonCliffInfo memory info = userNonCliffInfo[_poolId][
             _msgSender()
         ];
         require(
-            cliffPoolInfo[_poolId].cliffPeriod < block.timestamp,
-            "IVesting: Cliff Period Is Not Over Yet"
+            cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
+            "IIronVest: Cliff Period Is Not Over Yet"
         );
 
         uint256 transferAble = nonCliffClaimable(_poolId, _msgSender());
         uint256 claimed = transferAble + info.claimedAmnt;
-        require(transferAble > 0, "IVesting: Invalid TransferAble");
+        require(transferAble > 0, "IIronVest: Invalid TransferAble");
         IERC20(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
         uint256 remainingTobeClaimable = info.nonCliffAlloc - claimed;
-        userNonClifInfo[_poolId][_msgSender()] = IVesting.UserNonClifInfo(
-            info.allocation,
-            info.nonCliffAlloc,
-            claimed,
-            info.tokensRelaseTime,
-            remainingTobeClaimable,
-            info.nonCliffRealeaseRatePerSec,
-            block.timestamp
-        );
+        userNonCliffInfo[_poolId][_msgSender()].claimedAmnt = claimed;
+        userNonCliffInfo[_poolId][_msgSender()].remainingToBeClaimableNonCliff = remainingTobeClaimable;
+        userNonCliffInfo[_poolId][_msgSender()].nonCliffLastWithdrawal = block.timestamp;
         emit NonCliffClaim(
             _poolId,
             transferAble,
@@ -458,18 +441,18 @@ contract VestingHarvestContarct is
         uint256 claimable;
         uint256 releaseRate;
 
-        IVesting.UserInfo memory info = userInfo[_poolId][_user];
+        IIronVest.UserInfo memory info = userInfo[_poolId][_user];
         require(
             info.allocation > 0,
             "Allocation: You Don't have allocation in this pool"
         );
         releaseRate = info.releaseRatePerSec;
-        if (poolInfo[_poolId].startDate < block.timestamp) {
-            if (poolInfo[_poolId].vestingTime < block.timestamp) {
+        if (poolInfo[_poolId].startTime < block.timestamp) {
+            if (poolInfo[_poolId].vestingEndTime < block.timestamp) {
                 claimable = info.remainingToBeClaimable;
-            } else if (poolInfo[_poolId].vestingTime > block.timestamp) {
+            } else if (poolInfo[_poolId].vestingEndTime > block.timestamp) {
                 claimable =
-                    (block.timestamp - info.lastWithdrawl) *
+                    (block.timestamp - info.lastWithdrawal) *
                     releaseRate;
             }
         } else {
@@ -490,17 +473,17 @@ contract VestingHarvestContarct is
         returns (uint256)
     {
         uint256 cliffClaimable;
-        IVesting.UserClifInfo memory info = userClifInfo[_poolId][_user];
+        IIronVest.UserCliffInfo memory info = UserCliffInfo[_poolId][_user];
         require(
             info.allocation > 0,
             "Allocation: You Don't have allocation in this pool"
         );
 
-        if (cliffPoolInfo[_poolId].cliffPeriod < block.timestamp) {
-            if (cliffPoolInfo[_poolId].cliffVestingTime > block.timestamp) {
+        if (cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp) {
+            if (cliffPoolInfo[_poolId].cliffVestingEndTime > block.timestamp) {
                 cliffClaimable =
-                    (block.timestamp - info.cliffLastWithdrawl) *
-                    info.cliffRealeaseRatePerSec;
+                    (block.timestamp - info.cliffLastWithdrawal) *
+                    info.cliffReleaseRatePerSec;
             } else cliffClaimable = info.remainingToBeClaimableCliff;
         } else cliffClaimable = 0;
 
@@ -520,18 +503,20 @@ contract VestingHarvestContarct is
     {
         uint256 nonCliffClaimable;
         uint256 releaseRate;
-        IVesting.UserNonClifInfo memory info = userNonClifInfo[_poolId][_user];
+        IIronVest.UserNonCliffInfo memory info = userNonCliffInfo[_poolId][
+            _user
+        ];
         require(
             info.allocation > 0,
             "Allocation: You Don't have allocation in this pool"
         );
 
-        if (cliffPoolInfo[_poolId].cliffPeriod < block.timestamp) {
-            if (cliffPoolInfo[_poolId].nonCliffVestingTime > block.timestamp) {
+        if (cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp) {
+            if (cliffPoolInfo[_poolId].nonCliffVestingEndTime > block.timestamp) {
                 nonCliffClaimable =
-                    (block.timestamp - info.nonCliffLastWithdrawl) *
-                    info.nonCliffRealeaseRatePerSec;
-                releaseRate = info.nonCliffRealeaseRatePerSec;
+                    (block.timestamp - info.nonCliffLastWithdrawal) *
+                    info.nonCliffReleaseRatePerSec;
+                releaseRate = info.nonCliffReleaseRatePerSec;
             } else nonCliffClaimable = info.remainingToBeClaimableNonCliff;
         } else nonCliffClaimable = 0;
 
@@ -539,10 +524,74 @@ contract VestingHarvestContarct is
     }
 
     /*
+    @dev As we are using poolId as unique ID which is supposed to return pool info i.e
+    poolInfo and cliffPoolInfo but it unique for the contract level this function will 
+    return the values from where this poolId relate to.
+    @param _piilId : poolId
+    @return bool : if this Id relate to the cliffPool or note?
+    @return poolName : poolName If exist.
+    @return vestingEndTime : vestingEndTime of this Pool.
+    @return cliffVestingEndTime : cliffVestingEndTime If exist and if also a cliffPool.
+    @return nonCliffVestingEndTime : nonCliffVestingEndTime If exist and also a cliffPool.
+    @return cliffPeriodEndTime : cliffPeriodEndTime If exist and also a cliffPool.
+    @return tokenAddress :  Vested token address If exist.
+    @return totalVestedTokens : totalVestedTokens If exist.
+    @return cliffLockPercentage : cliffLockPercentage If exist and also a cliffPool.
+    */
+    function poolInformation(uint256 _poolId)
+        public
+        view
+        returns (
+            bool isCliff,
+            string memory poolName,
+            uint256 startTime,
+            uint256 vestingEndTime,
+            uint256 cliffVestingEndTime,
+            uint256 nonCliffVestingEndTime,
+            uint256 cliffPeriodEndTime,
+            address tokenAddress,
+            uint256 totalVestedTokens,
+            uint256 cliffLockPercentage
+        )
+    {
+        bool isCliff = cliff[_poolId];
+        if (isCliff) {
+            IIronVest.CliffPoolInfo memory info = cliffPoolInfo[_poolId];
+            return (
+                isCliff,
+                info.poolName,
+                info.startTime,
+                info.vestingEndTime,
+                info.cliffVestingEndTime,
+                info.nonCliffVestingEndTime,
+                info.cliffPeriodEndTime,
+                info.tokenAddress,
+                info.totalVestedTokens,
+                info.cliffLockPercentage
+            );
+        } else {
+            IIronVest.PoolInfo memory info = poolInfo[_poolId];
+            return (
+                isCliff,
+                info.poolName,
+                info.startTime,
+                info.vestingEndTime,
+                0,
+                0,
+                0,
+                info.tokenAddress,
+                info.totalVestedTokens,
+                0
+            );
+        }
+    }
+
+    /*
     @dev Functions is called by a default admin.
     @param user address whom admin want to be a signer.
     */
     function setSigner(address _signer) public onlyAdmin {
+        require(_signer != address(0x00),"Invalid: Signer Address Is Invalid");
         signer = _signer;
     }
 
@@ -625,4 +674,5 @@ contract VestingHarvestContarct is
         address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
         return signer;
     }
+
 }
