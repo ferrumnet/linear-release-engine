@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "./Libraries/IIronVest.sol";
 
-/* 
+   /* 
     @author The ferrum network.
     @title This is a vesting contract named as VestingHarvestContarct.
     @dev This contract is upgradeable please use a framework i.e truffle or hardhat for deploying it.
     @notice This contract contains the power of accesscontrol.    
     Have fun reading it. Hopefully it's bug-free. God Bless.
     */
-contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
+contract IronVest is  Initializable, ReentrancyGuardUpgradeable, AccessControlUpgradeable {
     // Declaration of token interface with SafeErc20.
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     // Public variable to strore contract name.
     string public vestingContractName;
     // Unique identity of contract.
@@ -138,11 +138,13 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     @param vesting name and signer address.
     @notice Contract is upgradeable need initilization and deployer is default admin.
     */
-    function initialize(string memory _vestingName, address _signer) public {
+    function initialize(string memory _vestingName, address _signer) public initializer {
         require(!initialized, "Contract instance has already been initialized");
+        __ReentrancyGuard_init();
+        __AccessControl_init();
         vestingContractName = _vestingName;
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(VESTER_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(VESTER_ROLE, _msgSender());
         signer = _signer;
         initialized = true;
     }
@@ -165,14 +167,14 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         address[] memory _usersAddresses,
         uint256[] memory _userAlloc,
         bytes memory signature,
-        bytes32 _salt
-    ) external onlyVester nonReentrant {
+        bytes memory _keyHash
+    ) public onlyVester nonReentrant {
         require(
             _vestingTime > block.timestamp,
-            "IIronVest: Invalid IIronVest Time"
+            "IIronVest: Invalid Vesting Time"
         );
         require(
-            signatureVerification(signature, _poolName, _tokenAddress) ==
+            signatureVerification(signature, _poolName, _tokenAddress, _keyHash) ==
                 signer,
             "Signer: Invalid signer"
         );
@@ -184,7 +186,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
                 0,
                 _userAlloc[i],
                 block.timestamp,
-                _userAlloc[i] / _vestingTime - block.timestamp
+                _userAlloc[i] / (_vestingTime - block.timestamp)
             );
         }
         poolInfo[vestingPoolSize] = IIronVest.PoolInfo(
@@ -196,12 +198,13 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             _usersAddresses,
             _userAlloc
         );
-        IERC20(_tokenAddress).safeTransferFrom(
+        IERC20Upgradeable(_tokenAddress).safeTransferFrom(
             _msgSender(),
             address(this),
             totalVesting
         );
         cliff[vestingPoolSize] = false;
+        vestingPoolSize = vestingPoolSize + 1;
         emit AddVesting(
             _msgSender(),
             vestingPoolSize,
@@ -213,7 +216,9 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             _usersAddresses,
             _userAlloc
         );
-        vestingPoolSize = vestingPoolSize + 1;
+        bytes32 _salt = messageHash(_poolName, _tokenAddress, _keyHash);
+        usedHashes[_salt] = true;
+
     }
 
     /*
@@ -224,12 +229,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     */
     function claim(uint256 _poolId) external nonReentrant {
         uint256 transferAble = claimable(_poolId, _msgSender());
-        require(
-            block.timestamp > poolInfo[_poolId].startTime,
-            "IIronVest: Lock Time Is Not Over Yet"
-        );
         require(transferAble > 0, "IIronVest: Invalid TransferAble");
-        IERC20(poolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(poolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -264,11 +265,11 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         uint256 _cliffVestingTime,
         uint256 _cliffPeriod,
         address _tokenAddress,
-        uint256 _cliffPercentage,
+        uint256 _cliffPercentage10000,
         address[] memory _usersAddresses,
         uint256[] memory _userAlloc,
         bytes memory signature,
-        bytes32 _salt
+        bytes memory _keyHash
     ) external onlyVester nonReentrant {
         require(
             _vestingTime > block.timestamp,
@@ -276,31 +277,35 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         );
         require(
             _cliffVestingTime < _vestingTime,
-            "IIronVest: Cliff IIronVest Time Must Be Lesser Than IIronVest Time"
+            "IIronVest: Cliff Vesting Time Must Be Lesser Than IIronVest Time"
         );
         require(
             _cliffVestingTime > _cliffPeriod,
-            "IIronVest: Cliff IIronVest Time Must Be Greater Than Cliff Period"
+            "IIronVest: Cliff Vesting Time Must Be Greater Than Cliff Period"
         );
         require(
-            signatureVerification(signature, _poolName, _tokenAddress) ==
+            _cliffPeriod > block.timestamp,
+            "IIronVest: Cliff Period Time Must Be Greater Than Current Time"
+        );
+        require(
+            signatureVerification(signature, _poolName, _tokenAddress, _keyHash) ==
                 signer,
             "Signer: Invalid signer"
         );
         require(
-            _cliffPercentage <= 50,
+            _cliffPercentage10000 <= 5000,
             "Percentage:Percentage Should Be less Than  50%"
         );
         require(
-            _cliffPercentage >= 1,
-            "Percentage:Percentage Should Be More Than  1%"
+            _cliffPercentage10000 >= 50,
+            "Percentage:Percentage Should Be More Than  0.5%"
         );
 
         uint256 nonCliffVestingEndTime = (_vestingTime - _cliffVestingTime) +
             _cliffPeriod;
         uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
-            uint256 cliffAlloc = (_userAlloc[i] * _cliffPercentage) / 100;
+            uint256 cliffAlloc = (_userAlloc[i] * _cliffPercentage10000) / 10000;
             totalVesting += _userAlloc[i];
             uint256 nonCliffReaminingTobeclaimable = _userAlloc[i] - cliffAlloc;
             UserCliffInfo[vestingPoolSize][_usersAddresses[i]] = IIronVest
@@ -334,17 +339,17 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             _cliffPeriod,
             _tokenAddress,
             totalVesting,
-            _cliffPercentage,
+            _cliffPercentage10000,
             _usersAddresses,
             _userAlloc
         );
-        IERC20(_tokenAddress).safeTransferFrom(
+        IERC20Upgradeable(_tokenAddress).safeTransferFrom(
             _msgSender(),
             address(this),
             totalVesting
         );
         cliff[vestingPoolSize] = true;
-
+        vestingPoolSize = vestingPoolSize + 1;
         emit CliffAddVesting(
             _msgSender(),
             vestingPoolSize,
@@ -358,8 +363,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             _usersAddresses,
             _userAlloc
         );
-
-        vestingPoolSize = vestingPoolSize + 1;
+        bytes32 _salt = messageHash(_poolName, _tokenAddress, _keyHash);
+        usedHashes[_salt] = true;
     }
 
     /*
@@ -380,7 +385,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
 
         uint256 transferAble = cliffClaimable(_poolId, _msgSender());
         require(transferAble > 0, "IIronVest: Invalid TransferAble");
-        IERC20(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -419,7 +424,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         uint256 transferAble = nonCliffClaimable(_poolId, _msgSender());
         uint256 claimed = transferAble + info.claimedAmnt;
         require(transferAble > 0, "IIronVest: Invalid TransferAble");
-        IERC20(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -449,21 +454,18 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         returns (uint256)
     {
         uint256 claimable;
-        uint256 releaseRate;
-
         IIronVest.UserInfo memory info = userInfo[_poolId][_user];
         require(
             info.allocation > 0,
             "Allocation: You Don't have allocation in this pool"
         );
-        releaseRate = info.releaseRatePerSec;
         if (poolInfo[_poolId].startTime < block.timestamp) {
             if (poolInfo[_poolId].vestingEndTime < block.timestamp) {
                 claimable = info.remainingToBeClaimable;
             } else if (poolInfo[_poolId].vestingEndTime > block.timestamp) {
                 claimable =
                     (block.timestamp - info.lastWithdrawal) *
-                    releaseRate;
+                    info.releaseRatePerSec;
             }
         } else {
             claimable = 0;
@@ -512,7 +514,6 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         returns (uint256)
     {
         uint256 nonCliffClaimable;
-        uint256 releaseRate;
         IIronVest.UserNonCliffInfo memory info = userNonCliffInfo[_poolId][
             _user
         ];
@@ -528,7 +529,6 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
                 nonCliffClaimable =
                     (block.timestamp - info.nonCliffLastWithdrawal) *
                     info.nonCliffReleaseRatePerSec;
-                releaseRate = info.nonCliffReleaseRatePerSec;
             } else nonCliffClaimable = info.remainingToBeClaimableNonCliff;
         } else nonCliffClaimable = 0;
 
@@ -566,8 +566,8 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
             uint256 cliffLockPercentage
         )
     {
-        bool isCliff = cliff[_poolId];
-        if (isCliff) {
+        // bool isCliff = cliff[_poolId];
+        if (cliff[_poolId]) {
             IIronVest.CliffPoolInfo memory info = cliffPoolInfo[_poolId];
             return (
                 isCliff,
@@ -579,7 +579,7 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
                 info.cliffPeriodEndTime,
                 info.tokenAddress,
                 info.totalVestedTokens,
-                info.cliffLockPercentage
+                info.cliffLockPercentage10000
             );
         } else {
             IIronVest.PoolInfo memory info = poolInfo[_poolId];
@@ -615,11 +615,10 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
     function signatureVerification(
         bytes memory signature,
         string memory _poolName,
-        address _tokenAddress
+        address _tokenAddress,
+        bytes memory _keyHash
     ) public view returns (address) {
-        bytes32 _salt = keccak256(
-            abi.encodePacked(_poolName, _tokenAddress, block.chainid)
-        );
+        bytes32 _salt = messageHash(_poolName, _tokenAddress, _keyHash);
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
         require(!usedHashes[_salt], "Message already used");
 
@@ -691,17 +690,24 @@ contract IronVest is AccessControl, Initializable, ReentrancyGuardUpgradeable {
         return signer;
     }
 
-    function hashMesage(
-        bytes32 _salt,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
-    ) internal pure returns (address) {
+    function messageHash(
+        string memory _poolName,
+        address _tokenAddress,
+        bytes memory _keyHash
+    ) public view returns (bytes32) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHashMessage = keccak256(
-            abi.encodePacked(prefix, _salt)
+
+        bytes32 hash = keccak256(
+            abi.encodePacked(_poolName, _tokenAddress, _keyHash, block.chainid)
         );
-        address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
-        return signer;
+        return hash;
+    }
+
+    function getsalt(
+        string memory _poolName,
+        address _tokenAddress,
+        bytes memory _keyHash
+    ) public view returns (bytes memory) {
+        return abi.encodePacked(_poolName, _tokenAddress, _keyHash, block.chainid);
     }
 }

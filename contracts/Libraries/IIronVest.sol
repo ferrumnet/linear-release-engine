@@ -30,7 +30,7 @@ library IIronVest {
         uint256 cliffPeriodEndTime;
         address tokenAddress;
         uint256 totalVestedTokens; //
-        uint256 cliffLockPercentage;
+        uint256 cliffLockPercentage10000;
         address[] usersAddresses;
         uint256[] usersAlloc;
     }
