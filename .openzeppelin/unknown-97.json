@@ -1,0 +1,393 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0x101B992ff89412c8C342D62A14D0De5bA9d0F653",
+    "txHash": "0x414afaf87e4476f6b85e6033e74cd799f1dc4ca591e073493462888c43a1a20b"
+  },
+  "proxies": [
+    {
+      "address": "0x8E5061e78D41EfDca25058B4E311D0079D2A1EE0",
+      "txHash": "0x1615523c13dc54553f720ea96d6ff57f920e13c201e26dadc5c4e71e1ff50c6e",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "bf222b73790880c60667004931964c52291abed1dbc98041856e077d6dc9f88b": {
+      "address": "0x30bD2dCd2d8a9c3E2528c913Fcd6cF9cc9dA220F",
+      "txHash": "0xb4a45932ac73f20354a4597f781d5a43af94225c3f516df7bda50175b36d13b9",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_uint8",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:67"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:74"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\utils\\introspection\\ERC165Upgradeable.sol:41"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)34_storage)",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\access\\AccessControlUpgradeable.sol:61"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "..\\@openzeppelin\\contracts-upgradeable\\access\\AccessControlUpgradeable.sol:259"
+          },
+          {
+            "contract": "IronVest",
+            "label": "vestingContractName",
+            "type": "t_string_storage",
+            "src": "..\\project:\\contracts\\IronVest.sol:80"
+          },
+          {
+            "contract": "IronVest",
+            "label": "vestingPoolSize",
+            "type": "t_uint256",
+            "src": "..\\project:\\contracts\\IronVest.sol:82"
+          },
+          {
+            "contract": "IronVest",
+            "label": "signer",
+            "type": "t_address",
+            "src": "..\\project:\\contracts\\IronVest.sol:84"
+          },
+          {
+            "contract": "IronVest",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "..\\project:\\contracts\\IronVest.sol:86"
+          },
+          {
+            "contract": "IronVest",
+            "label": "cliff",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "src": "..\\project:\\contracts\\IronVest.sol:92"
+          },
+          {
+            "contract": "IronVest",
+            "label": "poolInfo",
+            "type": "t_mapping(t_uint256,t_struct(PoolInfo)1614_storage)",
+            "src": "..\\project:\\contracts\\IronVest.sol:94"
+          },
+          {
+            "contract": "IronVest",
+            "label": "cliffPoolInfo",
+            "type": "t_mapping(t_uint256,t_struct(CliffPoolInfo)1650_storage)",
+            "src": "..\\project:\\contracts\\IronVest.sol:96"
+          },
+          {
+            "contract": "IronVest",
+            "label": "userInfo",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserInfo)1625_storage))",
+            "src": "..\\project:\\contracts\\IronVest.sol:98"
+          },
+          {
+            "contract": "IronVest",
+            "label": "userCliffInfo",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserCliffInfo)1665_storage))",
+            "src": "..\\project:\\contracts\\IronVest.sol:100"
+          },
+          {
+            "contract": "IronVest",
+            "label": "userNonCliffInfo",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserNonCliffInfo)1680_storage))",
+            "src": "..\\project:\\contracts\\IronVest.sol:102"
+          },
+          {
+            "contract": "IronVest",
+            "label": "usedHashes",
+            "type": "t_mapping(t_bytes32,t_bool)",
+            "src": "..\\project:\\contracts\\IronVest.sol:105"
+          }
+        ],
+        "types": {
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)"
+          },
+          "t_mapping(t_uint256,t_struct(PoolInfo)1614_storage)": {
+            "label": "mapping(uint256 => struct IronVest.PoolInfo)"
+          },
+          "t_struct(PoolInfo)1614_storage": {
+            "label": "struct IronVest.PoolInfo",
+            "members": [
+              {
+                "label": "poolName",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "vestingEndTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokenAddress",
+                "type": "t_address"
+              },
+              {
+                "label": "totalVestedTokens",
+                "type": "t_uint256"
+              },
+              {
+                "label": "usersAddresses",
+                "type": "t_array(t_address)dyn_storage"
+              },
+              {
+                "label": "usersAlloc",
+                "type": "t_array(t_uint256)dyn_storage"
+              }
+            ]
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]"
+          },
+          "t_mapping(t_uint256,t_struct(CliffPoolInfo)1650_storage)": {
+            "label": "mapping(uint256 => struct IronVest.CliffPoolInfo)"
+          },
+          "t_struct(CliffPoolInfo)1650_storage": {
+            "label": "struct IronVest.CliffPoolInfo",
+            "members": [
+              {
+                "label": "poolName",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "vestingEndTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "cliffVestingEndTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "nonCliffVestingEndTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "cliffPeriodEndTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokenAddress",
+                "type": "t_address"
+              },
+              {
+                "label": "totalVestedTokens",
+                "type": "t_uint256"
+              },
+              {
+                "label": "cliffLockPercentage10000",
+                "type": "t_uint256"
+              },
+              {
+                "label": "usersAddresses",
+                "type": "t_array(t_address)dyn_storage"
+              },
+              {
+                "label": "usersAlloc",
+                "type": "t_array(t_uint256)dyn_storage"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserInfo)1625_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct IronVest.UserInfo))"
+          },
+          "t_mapping(t_address,t_struct(UserInfo)1625_storage)": {
+            "label": "mapping(address => struct IronVest.UserInfo)"
+          },
+          "t_struct(UserInfo)1625_storage": {
+            "label": "struct IronVest.UserInfo",
+            "members": [
+              {
+                "label": "allocation",
+                "type": "t_uint256"
+              },
+              {
+                "label": "claimedAmount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "remainingToBeClaimable",
+                "type": "t_uint256"
+              },
+              {
+                "label": "lastWithdrawal",
+                "type": "t_uint256"
+              },
+              {
+                "label": "releaseRatePerSec",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserCliffInfo)1665_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct IronVest.UserCliffInfo))"
+          },
+          "t_mapping(t_address,t_struct(UserCliffInfo)1665_storage)": {
+            "label": "mapping(address => struct IronVest.UserCliffInfo)"
+          },
+          "t_struct(UserCliffInfo)1665_storage": {
+            "label": "struct IronVest.UserCliffInfo",
+            "members": [
+              {
+                "label": "allocation",
+                "type": "t_uint256"
+              },
+              {
+                "label": "cliffAlloc",
+                "type": "t_uint256"
+              },
+              {
+                "label": "claimedAmnt",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokensReleaseTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "remainingToBeClaimableCliff",
+                "type": "t_uint256"
+              },
+              {
+                "label": "cliffReleaseRatePerSec",
+                "type": "t_uint256"
+              },
+              {
+                "label": "cliffLastWithdrawal",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserNonCliffInfo)1680_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct IronVest.UserNonCliffInfo))"
+          },
+          "t_mapping(t_address,t_struct(UserNonCliffInfo)1680_storage)": {
+            "label": "mapping(address => struct IronVest.UserNonCliffInfo)"
+          },
+          "t_struct(UserNonCliffInfo)1680_storage": {
+            "label": "struct IronVest.UserNonCliffInfo",
+            "members": [
+              {
+                "label": "allocation",
+                "type": "t_uint256"
+              },
+              {
+                "label": "nonCliffAlloc",
+                "type": "t_uint256"
+              },
+              {
+                "label": "claimedAmnt",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokensReleaseTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "remainingToBeClaimableNonCliff",
+                "type": "t_uint256"
+              },
+              {
+                "label": "nonCliffReleaseRatePerSec",
+                "type": "t_uint256"
+              },
+              {
+                "label": "nonCliffLastWithdrawal",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)34_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+          },
+          "t_struct(RoleData)34_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_uint8": {
+            "label": "uint8"
+          }
+        }
+      }
+    }
+  }
+}
