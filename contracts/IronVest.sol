@@ -28,7 +28,7 @@ contract IronVest is
   struct PoolInfo {
     string poolName;
     uint256 startTime; //block.timestamp while creating new pool.
-    uint256 vestingEndTime; //in seconds.
+    uint256 vestingEndTime; //time stamp when to end the vesting.
     address tokenAddress; //token which we want to vest in the contract.
     uint256 totalVestedTokens; //total amount of tokens.
     address[] usersAddresses; //addresses of users an array.
@@ -38,20 +38,20 @@ contract IronVest is
   //@notice Used to store information about the user in simple vesting.
   struct UserInfo {
     uint256 allocation; // total allocation to a user.
-    uint256 claimedAmount; //amount that is already claimed.
+    uint256 claimedAmount; // claimedAmnt + claimed.
     uint256 remainingToBeClaimable; // remaining claimable fully claimable once time ended.
-    uint256 lastWithdrawal; //used for internal claimable calculation
-    uint256 releaseRatePerSec; // how many tokens to be release at specific time
+    uint256 lastWithdrawal; //block.timestamp used for internal claimable calculation
+    uint256 releaseRatePerSec; // calculated as vestingTime/(vestingTime-starttime)
   }
 
   //@notice This struct will save all the pool information about simple vesting i.e addCliffVesting().
   struct CliffPoolInfo {
     string poolName;
     uint256 startTime; //block.timestamp while creating new pool.
-    uint256 vestingEndTime; //in seconds.
-    uint256 cliffVestingEndTime; //time in which user can vest cliff tokens.
+    uint256 vestingEndTime; //total time to end cliff vesting.
+    uint256 cliffVestingEndTime; //time in which user can vest cliff tokens should be less than vestingendtime.
     uint256 nonCliffVestingEndTime; //calculated as(cliffVestingEndTime-vestingEndTime)+cliffPeriodEndTime.
-    uint256 cliffPeriodEndTime; //in this time tenure the tokens keep locked in contract
+    uint256 cliffPeriodEndTime; //in this time tenure the tokens keep locked in contract. a timestamp
     address tokenAddress; //token which we want to vest in the contract.
     uint256 totalVestedTokens; //total amount of tokens.
     uint256 cliffLockPercentage10000; //for percentage calculation using 10000 instead 100.
@@ -62,20 +62,20 @@ contract IronVest is
   //@notice Used to store information about the user in cliff vesting.
   struct UserCliffInfo {
     uint256 allocation; // total allocation cliff+noncliff
-    uint256 cliffAlloc; //(totalallocation*allocation)/10000
-    uint256 claimedAmnt; //amount that is already claimed.
+    uint256 cliffAlloc; // (totalallocation*cliffPercentage)/10000
+    uint256 claimedAmnt; // claimedAmnt-claimableClaimed.
     uint256 tokensReleaseTime; //the time we used to start vesting tokens.
     uint256 remainingToBeClaimableCliff; // remaining claimable fully claimable once time ended.
-    uint256 cliffReleaseRatePerSec; // how many tokens to be release at specific time.
-    uint256 cliffLastWithdrawal; //used for internal claimable calculation.
+    uint256 cliffReleaseRatePerSec; // calculated as cliffAlloc/(cliffendtime -cliffPeriodendtime).
+    uint256 cliffLastWithdrawal; //block.timestamp used for internal claimable calculation.
   }
   struct UserNonCliffInfo {
     uint256 allocation; // total allocation cliff+noncliff
-    uint256 nonCliffAlloc; //(totalallocation*cliffalloc)
-    uint256 claimedAmnt; //calimableAmnt
-    uint256 tokensReleaseTime; ////the time we used to start vesting tokens.
+    uint256 nonCliffAlloc; // (totalallocation-cliffalloc)
+    uint256 claimedAmnt; // claimedAmnt-claimableClaimed
+    uint256 tokensReleaseTime; // the time we used to start vesting tokens.
     uint256 remainingToBeClaimableNonCliff; // remaining claimable fully claimable once time ended.
-    uint256 nonCliffReleaseRatePerSec; // how many tokens to be release at specific time.
+    uint256 nonCliffReleaseRatePerSec; // calculated as nonCliffAlloc/(cliffVestingEndTime-vestingEndTime).
     uint256 nonCliffLastWithdrawal; //used for internal claimable calculation.
   }
 
@@ -221,7 +221,7 @@ contract IronVest is
     @param Users addresses whom the vester want to allocate tokens and it is an array.
     @param Users allocation of tokens with respect to address.
     @param Signature of the signed by signer.
-    @param Specific salt value.
+    @param Specific keyhash value formed to stop replay.
     @notice Create a new vesting.
     */
   function addVesting(
@@ -317,7 +317,7 @@ contract IronVest is
     @param Users addresses whom the vester want to allocate tokens and it is an array.
     @param Users allocation of tokens with respect to address.
     @param Signature of the signed by signer.
-    @param Specific salt value.
+    @param Specific keyhash value formed to stop replay.
     @notice Create a new vesting with cliff.
     */
   function addCliffVesting(
@@ -358,7 +358,7 @@ contract IronVest is
       "Percentage:Percentage Should Be less Than  50%"
     );
     require(
-      _cliffPercentage10000 >= 50,
+      _cliffPercentage10000 >= 10,
       "Percentage:Percentage Should Be More Than  0.5%"
     );
 
@@ -655,8 +655,11 @@ contract IronVest is
 
   /*
     @dev For geting signer address from salt and sgnature.
-    @param sig : signature provided signed by signer
-    @return Address of signer who signed the message hash
+    @param signature provided signed by signer.
+    @param poolName to name a pool.
+    @param tokenAddess of our vested tokesn.
+    @param keyhash value to stop replay.
+    @return Address of signer who signed the message hash.
     */
   function signatureVerification(
     bytes memory signature,
