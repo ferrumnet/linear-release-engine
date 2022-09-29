@@ -7,11 +7,16 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-/* 
+    /* 
     @author The ferrum network.
-    @title This is a vesting contract named as VestingHarvestContarct.
+    @title This is a vesting contract named as IronVest.
     @dev This contract is upgradeable please use a framework i.e truffle or hardhat for deploying it.
-    @notice This contract contains the power of accesscontrol.    
+    @notice This contract contains the power of accesscontrol.
+    This contract is used for token vesting.
+    There are two different was defined in the contract with different functionalities.
+    The time management in the contract is in standard epoch time.
+    The add vesting functionalities is secured from replay attach by a specific signature.
+
     Have fun reading it. Hopefully it's bug-free. God Bless.
     */
 contract IronVest is
@@ -94,11 +99,11 @@ contract IronVest is
   mapping(uint256 => PoolInfo) poolInfo;
   // Pool information against specific poolid for cliff vesting.
   mapping(uint256 => CliffPoolInfo) cliffPoolInfo;
-  // Double mapping to check user information by address and poolid for simple vesting.
+  // Double mapping to check user information by address and poolid for cliff vesting.
   mapping(uint256 => mapping(address => UserInfo)) public userInfo;
   // Double mapping to check user information by address and poolid for cliff vesting.
   mapping(uint256 => mapping(address => UserCliffInfo)) public userCliffInfo;
-
+  // Double mapping to check user information by address and poolid for cliff vesting.
   mapping(uint256 => mapping(address => UserNonCliffInfo))
     public userNonCliffInfo;
   // Hash Information to avoid the replay from same messageHash
