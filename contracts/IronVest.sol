@@ -268,7 +268,6 @@ contract IronVest is
       totalVesting
     );
     cliff[vestingPoolSize] = false;
-    vestingPoolSize = vestingPoolSize + 1;
     emit AddVesting(
       _msgSender(),
       vestingPoolSize,
@@ -280,6 +279,7 @@ contract IronVest is
       _usersAddresses,
       _userAlloc
     );
+    vestingPoolSize = vestingPoolSize + 1;
     usedHashes[messageHash(_poolName, _tokenAddress, _keyHash)] = true;
   }
 
@@ -408,7 +408,6 @@ contract IronVest is
       totalVesting
     );
     cliff[vestingPoolSize] = true;
-    vestingPoolSize = vestingPoolSize + 1;
     emit CliffAddVesting(
       _msgSender(),
       vestingPoolSize,
@@ -422,6 +421,7 @@ contract IronVest is
       _usersAddresses,
       _userAlloc
     );
+    vestingPoolSize = vestingPoolSize + 1;
     usedHashes[messageHash(_poolName, _tokenAddress, _keyHash)] = true;
   }
 
