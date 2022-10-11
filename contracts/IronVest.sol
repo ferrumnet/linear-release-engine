@@ -12,7 +12,6 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 /// @title This is a vesting contract named as IronVest.
 /// @dev This contract is upgradeable please use a framework i.e truffle or hardhat for deploying it.
 /// @notice This contract contains the power of accesscontrol.
-/// This contract is used for token vesting.
 /// There are two different vesting defined in the contract with different functionalities.
 /// Have fun reading it. Hopefully it's bug-free. God Bless.
 contract IronVest is
@@ -53,7 +52,7 @@ contract IronVest is
         string poolName,
         uint256 vestingEndTime,
         uint256 cliffVestingEndTime,
-        uint256 nonCliffVestingEndTime,
+        uint256 nonCliffVestingPeriod,
         uint256 cliffPeriodEndTime,
         address tokenAddress,
         uint256 totalVestedTokens,
@@ -132,7 +131,7 @@ contract IronVest is
         uint256 startTime; /// block.timestamp while creating new pool.
         uint256 vestingEndTime; /// total time to end cliff vesting.
         uint256 cliffVestingEndTime; /// time in which user can vest cliff tokens should be less than vestingendtime.
-        uint256 nonCliffVestingEndTime; /// calculated as(cliffVestingEndTime-vestingEndTime)+cliffPeriodEndTime.
+        uint256 nonCliffVestingPeriod; /// calculated as cliffPeriod-vestingEndTime. in seconds
         uint256 cliffPeriodEndTime; ///in this time tenure the tokens keep locked in contract. a timestamp
         address tokenAddress; /// token which we want to vest in the contract.
         uint256 totalVestedTokens; /// total amount of tokens.
@@ -146,7 +145,7 @@ contract IronVest is
         uint256 allocation; /// total allocation cliff+noncliff
         uint256 cliffAlloc; /// (totalallocation*cliffPercentage)/10000
         uint256 claimedAmnt; /// claimedAmnt-claimableClaimed.
-        uint256 tokensReleaseTime; ///the time we used to start vesting tokens.
+        uint256 tokensReleaseTime; /// the time we used to start vesting tokens.
         uint256 remainingToBeClaimableCliff; /// remaining claimable fully claimable once time ended.
         uint256 cliffReleaseRatePerSec; /// calculated as cliffAlloc/(cliffendtime -cliffPeriodendtime).
         uint256 cliffLastWithdrawal; /// block.timestamp used for internal claimable calculation.
@@ -219,7 +218,7 @@ contract IronVest is
         );
         require(
             _vestingEndTime > block.timestamp,
-            "IIronVest : Invalid Vesting Time"
+            "IIronVest : Vesting End Time Should Be Greater Than Current Time"
         );
         require(
             signatureVerification(
@@ -348,9 +347,6 @@ contract IronVest is
             _cliffPercentage10000 >= 10,
             "Percentage :Percentage Should Be More Than  0.1%"
         );
-
-        uint256 nonCliffVestingEndTime = (_vestingEndTime -
-            _cliffVestingEndTime) + _cliffPeriodEndTime;
         uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
             uint256 cliffAlloc = (_userAlloc[i] * _cliffPercentage10000) /
@@ -375,16 +371,17 @@ contract IronVest is
                 _cliffPeriodEndTime,
                 nonCliffReaminingTobeclaimable,
                 (_userAlloc[i] - (cliffAlloc)) /
-                    (nonCliffVestingEndTime - _cliffPeriodEndTime),
+                    (_vestingEndTime - _cliffPeriodEndTime),
                 _cliffPeriodEndTime
             );
         }
+        uint256 nonCliffVestingPeriod = _vestingEndTime - _cliffPeriodEndTime;
         cliffPoolInfo[vestingPoolSize] = CliffPoolInfo(
             _poolName,
             block.timestamp,
             _vestingEndTime,
             _cliffVestingEndTime,
-            (_vestingEndTime - _cliffVestingEndTime) + _cliffPeriodEndTime,
+            nonCliffVestingPeriod,
             _cliffPeriodEndTime,
             _tokenAddress,
             totalVesting,
@@ -404,7 +401,7 @@ contract IronVest is
             _poolName,
             _vestingEndTime,
             _cliffVestingEndTime,
-            nonCliffVestingEndTime,
+            nonCliffVestingPeriod,
             _cliffPeriodEndTime,
             _tokenAddress,
             totalVesting,
@@ -414,7 +411,6 @@ contract IronVest is
         vestingPoolSize = vestingPoolSize + 1;
         usedHashes[_messageHash(_poolName, _tokenAddress, _keyHash)] = true;
     }
-
 
     /// @dev User must have allocation in the pool.
     /// @notice This is for claiming cliff vesting.
@@ -515,11 +511,11 @@ contract IronVest is
             "Allocation : You Don't have allocation in this pool"
         );
         if (poolInfo[_poolId].vestingEndTime <= block.timestamp) {
-            if (poolInfo[_poolId].vestingEndTime >= block.timestamp) {
-                claimable =
-                    (block.timestamp - info.lastWithdrawal) *
-                    info.releaseRatePerSec;
-            } else claimable = info.remainingToBeClaimable;
+            claimable = info.remainingToBeClaimable;
+        } else if (poolInfo[_poolId].vestingEndTime >= block.timestamp) {
+            claimable =
+                (block.timestamp - info.lastWithdrawal) *
+                info.releaseRatePerSec;
         }
         return (claimable);
     }
@@ -568,9 +564,7 @@ contract IronVest is
         );
 
         if (cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
-            if (
-                cliffPoolInfo[_poolId].nonCliffVestingEndTime >= block.timestamp
-            ) {
+            if (cliffPoolInfo[_poolId].vestingEndTime >= block.timestamp) {
                 nonCliffClaimable =
                     (block.timestamp - info.nonCliffLastWithdrawal) *
                     info.nonCliffReleaseRatePerSec;
@@ -589,7 +583,7 @@ contract IronVest is
     /// @return startTime : When does this pool initialized .
     /// @return vestingEndTime : Vesting End Time of this Pool.
     /// @return cliffVestingEndTime : CliffVestingEndTime If exist and if also a cliffPool.
-    /// @return nonCliffVestingEndTime : Non CliffVesting EndTime If exist and also a cliffPool.
+    /// @return nonCliffVestingPeriod : Non CliffVesting Period If exist and also a cliffPool.
     /// @return cliffPeriodEndTime : Cliff Period End Time If exist and also a cliffPool.
     /// @return tokenAddress :  Vested token address If exist.
     /// @return totalVestedTokens : total Vested Tokens If exist.
@@ -603,7 +597,7 @@ contract IronVest is
             uint256 startTime,
             uint256 vestingEndTime,
             uint256 cliffVestingEndTime,
-            uint256 nonCliffVestingEndTime,
+            uint256 nonCliffVestingPeriod,
             uint256 cliffPeriodEndTime,
             address tokenAddress,
             uint256 totalVestedTokens,
@@ -619,7 +613,7 @@ contract IronVest is
                 info.startTime,
                 info.vestingEndTime,
                 info.cliffVestingEndTime,
-                info.nonCliffVestingEndTime,
+                info.nonCliffVestingPeriod,
                 info.cliffPeriodEndTime,
                 info.tokenAddress,
                 info.totalVestedTokens,
@@ -711,7 +705,7 @@ contract IronVest is
         bytes32 _r,
         bytes32 _s
     ) internal pure returns (address signerAddress) {
-        bytes memory prefix = "\x19Ethereum Signed Message :\n32";
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHashMessage = keccak256(
             abi.encodePacked(prefix, _salt)
         );
