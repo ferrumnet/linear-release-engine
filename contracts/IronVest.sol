@@ -320,7 +320,7 @@ contract IronVest is
         );
         require(
             _cliffVestingEndTime < _vestingEndTime,
-            "IIronVest : Cliff Vesting Time Must Be Lesser Than Vesting Time"
+            "IIronVest : Cliff Vesting End Time Must Be Lesser Than Vesting Time"
         );
         require(
             _cliffVestingEndTime > _cliffPeriodEndTime,

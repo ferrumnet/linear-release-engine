@@ -1,0 +1,1414 @@
+{
+	"compiler": {
+		"version": "0.8.17+commit.8df45f5f"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "vester",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "poolId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "poolName",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "startTime",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "vestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "totalVestedTokens",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address[]",
+						"name": "usersAddresses",
+						"type": "address[]"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256[]",
+						"name": "usersAlloc",
+						"type": "uint256[]"
+					}
+				],
+				"name": "AddVesting",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "poolId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "claimed",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "beneficiary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "remaining",
+						"type": "uint256"
+					}
+				],
+				"name": "Claim",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "vester",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "poolId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "poolName",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "vestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "cliffVestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "nonCliffVestingPeriod",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "cliffPeriodEndTime",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "totalVestedTokens",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address[]",
+						"name": "usersAddresses",
+						"type": "address[]"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256[]",
+						"name": "usersAlloc",
+						"type": "uint256[]"
+					}
+				],
+				"name": "CliffAddVesting",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "poolId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "claimed",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "beneficiary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "remaining",
+						"type": "uint256"
+					}
+				],
+				"name": "CliffClaim",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint8",
+						"name": "version",
+						"type": "uint8"
+					}
+				],
+				"name": "Initialized",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "poolId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "claimed",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "beneficiary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "remaining",
+						"type": "uint256"
+					}
+				],
+				"name": "NonCliffClaim",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "previousAdminRole",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "newAdminRole",
+						"type": "bytes32"
+					}
+				],
+				"name": "RoleAdminChanged",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "sender",
+						"type": "address"
+					}
+				],
+				"name": "RoleGranted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "sender",
+						"type": "address"
+					}
+				],
+				"name": "RoleRevoked",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "DEFAULT_ADMIN_ROLE",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "VESTER_ROLE",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_poolName",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_vestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_cliffVestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_cliffPeriodEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_cliffPercentage10000",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address[]",
+						"name": "_usersAddresses",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "_userAlloc",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "bytes",
+						"name": "_signature",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "_keyHash",
+						"type": "bytes"
+					}
+				],
+				"name": "addCliffVesting",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_poolName",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_vestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address[]",
+						"name": "_usersAddresses",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "_userAlloc",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "bytes",
+						"name": "_signature",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "_keyHash",
+						"type": "bytes"
+					}
+				],
+				"name": "addVesting",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					}
+				],
+				"name": "claim",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					}
+				],
+				"name": "claimCliff",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					}
+				],
+				"name": "claimNonCliff",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "claimable",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "cliff",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "cliffClaimable",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "contract IERC20Upgradeable",
+						"name": "_token",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_amount",
+						"type": "uint256"
+					}
+				],
+				"name": "emergencyWithdraw",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					}
+				],
+				"name": "getRoleAdmin",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "grantRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "hasRole",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_vestingName",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "_signer",
+						"type": "address"
+					}
+				],
+				"name": "initialize",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "nonCliffClaimable",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_poolId",
+						"type": "uint256"
+					}
+				],
+				"name": "poolInformation",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "isCliff",
+						"type": "bool"
+					},
+					{
+						"internalType": "string",
+						"name": "poolName",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "vestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "cliffVestingEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "nonCliffVestingPeriod",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "cliffPeriodEndTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalVestedTokens",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "cliffLockPercentage",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "renounceRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "revokeRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_signer",
+						"type": "address"
+					}
+				],
+				"name": "setSigner",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes",
+						"name": "_signature",
+						"type": "bytes"
+					},
+					{
+						"internalType": "string",
+						"name": "_poolName",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "_tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "bytes",
+						"name": "_keyHash",
+						"type": "bytes"
+					}
+				],
+				"name": "signatureVerification",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "signer",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes4",
+						"name": "interfaceId",
+						"type": "bytes4"
+					}
+				],
+				"name": "supportsInterface",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"name": "usedHashes",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "userCliffInfo",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "allocation",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "cliffAlloc",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimedAmnt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokensReleaseTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "remainingToBeClaimableCliff",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "cliffReleaseRatePerSec",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "cliffLastWithdrawal",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "userInfo",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "allocation",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimedAmount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "remainingToBeClaimable",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "lastWithdrawal",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "releaseRatePerSec",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "userNonCliffInfo",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "allocation",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "nonCliffAlloc",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimedAmnt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokensReleaseTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "remainingToBeClaimableNonCliff",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "nonCliffReleaseRatePerSec",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "nonCliffLastWithdrawal",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "vestingContractName",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "vestingPoolSize",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"author": "The ferrum network.",
+			"details": "This contract is upgradeable please use a framework i.e truffle or hardhat for deploying it.",
+			"events": {
+				"AddVesting(address,uint256,string,uint256,uint256,address,uint256,address[],uint256[])": {
+					"details": "Creating events for all necessary values while adding simple vesting."
+				},
+				"Claim(uint256,uint256,address,uint256)": {
+					"details": "Whenever user claim their amount from simple vesting."
+				},
+				"CliffAddVesting(address,uint256,string,uint256,uint256,uint256,uint256,address,uint256,address[],uint256[])": {
+					"details": "Creating events for all necessary values while adding cliff vesting."
+				},
+				"CliffClaim(uint256,uint256,address,uint256)": {
+					"details": "Whenever user claim their cliff amount from cliff vesting."
+				},
+				"NonCliffClaim(uint256,uint256,address,uint256)": {
+					"details": "Whenever user claim their non cliff amount from cliff vesting."
+				}
+			},
+			"kind": "dev",
+			"methods": {
+				"addCliffVesting(string,uint256,uint256,uint256,address,uint256,address[],uint256[],bytes,bytes)": {
+					"details": "Only callable by vester.",
+					"params": {
+						"_cliffPercentage10000": ": cliff percentage defines how may percentage should be allocated to cliff tokens.",
+						"_cliffPeriodEndTime": ": cliff period is a period in which token will be locked.",
+						"_cliffVestingEndTime": ": cliff vesting time is the end time for releasing cliff tokens.",
+						"_keyHash": ": Specific keyhash value formed to stop replay.",
+						"_poolName": ": Pool name is supposed to be any string.",
+						"_signature": ": Signature of the signed by signer.",
+						"_tokenAddress": ": Token address related to the vested token.",
+						"_userAlloc": ": Users allocation of tokens with respect to address.",
+						"_usersAddresses": ": Users addresses whom the vester want to allocate tokens and it is an array.",
+						"_vestingEndTime": ": Vesting time is tenure in which token will be released."
+					}
+				},
+				"addVesting(string,uint256,address,address[],uint256[],bytes,bytes)": {
+					"details": "Only callable by vester.",
+					"params": {
+						"_keyHash": ": Specific keyhash value formed to stop replay.",
+						"_poolName": ": Pool name is supposed to be any string.",
+						"_signature": ": Signature of the signed by signer.",
+						"_tokenAddress": ": Token address related to the vested token.",
+						"_userAlloc": ": Users allocation of tokens with respect to address.",
+						"_usersAddresses": ": Users addresses whom the vester want to allocate tokens and it is an array.",
+						"_vestingEndTime": ": Vesting time is tenure in which token will be released."
+					}
+				},
+				"claim(uint256)": {
+					"details": "User must have allocation in the pool.",
+					"params": {
+						"_poolId": ": poolId from which pool user want to withdraw."
+					}
+				},
+				"claimCliff(uint256)": {
+					"details": "User must have allocation in the pool.",
+					"params": {
+						"_poolId": ": Pool Id from which pool user want to withdraw."
+					}
+				},
+				"claimNonCliff(uint256)": {
+					"details": "User must have allocation in the pool.",
+					"params": {
+						"_poolId": ": Pool Id from which pool user want to withdraw."
+					}
+				},
+				"claimable(uint256,address)": {
+					"details": "This is check claimable for simple vesting.",
+					"params": {
+						"_poolId": ": Pool Id from which pool user want to check.",
+						"_user": ": User address for which user want to check claimables."
+					},
+					"returns": {
+						"_0": "returning the claimable amount of the user"
+					}
+				},
+				"cliffClaimable(uint256,address)": {
+					"details": "This is check claimable for cliff vesting.",
+					"params": {
+						"_poolId": ": Pool Id from which pool user want to check.",
+						"_user": ": User address for which user want to check claimables."
+					},
+					"returns": {
+						"_0": "returning the claimable amount of the user from cliff vesting."
+					}
+				},
+				"emergencyWithdraw(address,uint256)": {
+					"details": "this function use to withdraw tokens that send to the contract mistakenly",
+					"params": {
+						"_amount": ": How much tokens need to withdraw.",
+						"_token": ": Token address that is required to withdraw from contract."
+					}
+				},
+				"getRoleAdmin(bytes32)": {
+					"details": "Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}."
+				},
+				"grantRole(bytes32,address)": {
+					"details": "Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event."
+				},
+				"hasRole(bytes32,address)": {
+					"details": "Returns `true` if `account` has been granted `role`."
+				},
+				"initialize(string,address)": {
+					"details": "deploy the contract by upgradeable proxy by any framewrok.",
+					"params": {
+						"_signer": ": An address verification for facing the replay attack issues.",
+						"_vestingName": ": A name to our vesting contract."
+					}
+				},
+				"nonCliffClaimable(uint256,address)": {
+					"details": "This is check claimable for non cliff vesting.",
+					"params": {
+						"_poolId": ": Pool Id from which pool user want to check.",
+						"_user": ": User address for which user want to check claimables."
+					},
+					"returns": {
+						"_0": "returning the claimable amount of the user from non cliff vesting."
+					}
+				},
+				"poolInformation(uint256)": {
+					"details": "As we are using poolId as unique ID which is supposed to return pool info i.e poolInfo and cliffPoolInfo but it unique for the contract level this function will return the values from where this poolId relate to.",
+					"params": {
+						"_poolId": ": Every Pool has a unique Id."
+					},
+					"returns": {
+						"cliffLockPercentage": ": CliffLockPercentage If exist and also a cliffPool.",
+						"cliffPeriodEndTime": ": Cliff Period End Time If exist and also a cliffPool.",
+						"cliffVestingEndTime": ": CliffVestingEndTime If exist and if also a cliffPool.",
+						"isCliff": ": If this Id relate to the cliffPool or note?",
+						"nonCliffVestingPeriod": ": Non CliffVesting Period If exist and also a cliffPool.",
+						"poolName": ": PoolName If exist.",
+						"startTime": ": When does this pool initialized .",
+						"tokenAddress": ":  Vested token address If exist.",
+						"totalVestedTokens": ": total Vested Tokens If exist.",
+						"vestingEndTime": ": Vesting End Time of this Pool."
+					}
+				},
+				"renounceRole(bytes32,address)": {
+					"details": "Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `account`. May emit a {RoleRevoked} event."
+				},
+				"revokeRole(bytes32,address)": {
+					"details": "Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event."
+				},
+				"setSigner(address)": {
+					"details": "Functions is called by a default admin.",
+					"params": {
+						"_signer": ": An address whom admin want to be a signer."
+					}
+				},
+				"signatureVerification(bytes,string,address,bytes)": {
+					"details": "For geting signer address from salt and sgnature.",
+					"params": {
+						"_keyHash": ": keyhash value to stop replay.",
+						"_poolName": ": Pool Name to name a pool.",
+						"_signature": ": signature provided signed by signer.",
+						"_tokenAddress": ": tokenAddess of our vested tokesn."
+					},
+					"returns": {
+						"_0": "Address of signer who signed the message hash."
+					}
+				},
+				"supportsInterface(bytes4)": {
+					"details": "See {IERC165-supportsInterface}."
+				}
+			},
+			"title": "This is a vesting contract named as IronVest.",
+			"version": 1
+		},
+		"userdoc": {
+			"events": {
+				"AddVesting(address,uint256,string,uint256,uint256,address,uint256,address[],uint256[])": {
+					"notice": "vester address and poolId are indexed."
+				},
+				"Claim(uint256,uint256,address,uint256)": {
+					"notice": "beneficiary address and poolId are indexed."
+				},
+				"CliffAddVesting(address,uint256,string,uint256,uint256,uint256,uint256,address,uint256,address[],uint256[])": {
+					"notice": "vester address and poolId are indexed."
+				},
+				"CliffClaim(uint256,uint256,address,uint256)": {
+					"notice": "beneficiary address and poolId are indexed."
+				},
+				"NonCliffClaim(uint256,uint256,address,uint256)": {
+					"notice": "beneficiary address and poolId are indexed."
+				}
+			},
+			"kind": "user",
+			"methods": {
+				"VESTER_ROLE()": {
+					"notice": "Vester role initilization."
+				},
+				"addCliffVesting(string,uint256,uint256,uint256,address,uint256,address[],uint256[],bytes,bytes)": {
+					"notice": "Create a new vesting with cliff."
+				},
+				"addVesting(string,uint256,address,address[],uint256[],bytes,bytes)": {
+					"notice": "Create a new vesting."
+				},
+				"claim(uint256)": {
+					"notice": "This is for claiming simple vesting.Secured by nonReentrant"
+				},
+				"claimCliff(uint256)": {
+					"notice": "This is for claiming cliff vesting.should be called if need to claim cliff amount.Secured by nonReentrant."
+				},
+				"claimNonCliff(uint256)": {
+					"notice": "This is for claiming cliff vesting.should be called if need to claim non cliff amount.Secured by nonReentrant."
+				},
+				"cliff(uint256)": {
+					"notice": "Cliff mapping with the check if the specific pool relate to the cliff vesting or not."
+				},
+				"initialize(string,address)": {
+					"notice": "Contract is upgradeable need initilization and deployer is default admin."
+				},
+				"signer()": {
+					"notice": "Signer address. Transaction supposed to be sign be this address."
+				},
+				"usedHashes(bytes32)": {
+					"notice": "Hash Information to avoid the replay from same _messageHash"
+				},
+				"userCliffInfo(uint256,address)": {
+					"notice": "Double mapping to check user information by address and poolid for cliff vesting."
+				},
+				"userInfo(uint256,address)": {
+					"notice": "Double mapping to check user information by address and poolid for cliff vesting."
+				},
+				"userNonCliffInfo(uint256,address)": {
+					"notice": "Double mapping to check user information by address and poolid for cliff vesting."
+				},
+				"vestingContractName()": {
+					"notice": "Public variable to strore contract name."
+				},
+				"vestingPoolSize()": {
+					"notice": "Unique identity of contract."
+				}
+			},
+			"notice": "This contract contains the power of accesscontrol. There are two different vesting defined in the contract with different functionalities. Have fun reading it. Hopefully it's bug-free. God Bless.",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/IronVest.sol": "IronVest"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol": {
+			"keccak256": "0x2ea9f206854c98b67dd228f8cad22bfe90ba7b1c2295315672f2e1e244623fc3",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://b4a7ef6774a9acbbb01583a9fc4656ee9b3dae4b8d5099f480625bfc0af68a02",
+				"dweb:/ipfs/QmeXZcdZ7FELTc21GSgjRHXFCj4ohxrsZUaNzA5cMemAbE"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol": {
+			"keccak256": "0xb8f5302f12138c5561362e88a78d061573e6298b7a1a5afe84a1e2c8d4d5aeaa",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://740cf4dc535e3082560cf5a031473029f322690fc8037fe9d5e3a8bef42e757c",
+				"dweb:/ipfs/QmTQxFdfxcaueQa23VX34wAPqzruZbkzyeN58tZK2yav2b"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol": {
+			"keccak256": "0x0203dcadc5737d9ef2c211d6fa15d18ebc3b30dfa51903b64870b01a062b0b4e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6eb2fd1e9894dbe778f4b8131adecebe570689e63cf892f4e21257bfe1252497",
+				"dweb:/ipfs/QmXgUGNfZvrn6N2miv3nooSs7Jm34A41qz94fu2GtDFcx8"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol": {
+			"keccak256": "0x8cc03c5ac17e8a7396e487cda41fc1f1dfdb91db7d528e6da84bee3b6dd7e167",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://607818f1b44548c2d8268176f73cdb290e1faed971b1061930d92698366e2a11",
+				"dweb:/ipfs/QmQibMe3r5no95b6q7isGT5R75V8xSofWEDLXzp95b7LgZ"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol": {
+			"keccak256": "0x4e733d3164f73f461eaf9d8087a7ad1ea180bdc8ba0d3d61b0e1ae16d8e63dff",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://75b47c3aeca7b66ea6752f8be020ec5c1c502de6ec9065272dae23d3a52196e2",
+				"dweb:/ipfs/QmUebPMHv16tYKFh5BmBQkMfRFb5b8UZ2RgVwdjxCeufVF"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol": {
+			"keccak256": "0xcc70d8e2281fb3ff69e8ab242500f10142cd0a7fa8dd9e45882be270d4d09024",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://17a4063bc918df0f7bb9cbf04c6f0bb4977afab3f2fc212bc138a178312a221d",
+				"dweb:/ipfs/QmZMdvsHP5mDEAAdrK4bNeNh47TfmSFgN9qEBFTbie7zmm"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol": {
+			"keccak256": "0xf42efac0d704b136c4d85e970562d4dbc1160d726ee93b5133122eb14fe368df",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://e814c30d43cef5501933b775f33a6d6f06cde8aa3b7ce3773cf2256169bb6a1b",
+				"dweb:/ipfs/QmWMqHGc8MHDRgrPrtVyPqsYizr8dJsyFhnmwQV6aQwPKn"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol": {
+			"keccak256": "0x611aa3f23e59cfdd1863c536776407b3e33d695152a266fa7cfb34440a29a8a3",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://9b4b2110b7f2b3eb32951bc08046fa90feccffa594e1176cb91cdfb0e94726b4",
+				"dweb:/ipfs/QmSxLwYjicf9zWFuieRc8WQwE4FisA1Um5jp1iSa731TGt"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol": {
+			"keccak256": "0x963ea7f0b48b032eef72fe3a7582edf78408d6f834115b9feadd673a4d5bd149",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://d6520943ea55fdf5f0bafb39ed909f64de17051bc954ff3e88c9e5621412c79c",
+				"dweb:/ipfs/QmWZ4rAKTQbNG2HxGs46AcTXShsVytKeLs7CUCdCSv5N7a"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol": {
+			"keccak256": "0xea5339a7fff0ed42b45be56a88efdd0b2ddde9fa480dc99fef9a6a4c5b776863",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://841619682637df5579b4c396d281d6c55b26f1b1acce1d0ab67bead5e39cf60c",
+				"dweb:/ipfs/QmNRtuKp43ZHJwswdyT3GivY4fDMvz3cxBe1FfDthG1JGj"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol": {
+			"keccak256": "0x9a3b990bd56d139df3e454a9edf1c64668530b5a77fc32eb063bc206f958274a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://0895399d170daab2d69b4c43a0202e5a07f2e67a93b26e3354dcbedb062232f7",
+				"dweb:/ipfs/QmUM1VH3XDk559Dsgh4QPvupr3YVKjz87HrSyYzzVFZbxw"
+			]
+		},
+		"@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol": {
+			"keccak256": "0xc6cef87559d0aeffdf0a99803de655938a7779ec0a3cd5d4383483ad85565a09",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://92ad7e572cf44e6b4b37631b44b62f9eb9fb1cf14d9ce51c1504d5dc7ccaf758",
+				"dweb:/ipfs/QmcnbqX85tsWnUXPmtuPLE4SczME2sJaTfmqEFkuAJvWhy"
+			]
+		},
+		"contracts/IronVest.sol": {
+			"keccak256": "0x0a5d5a6a8d20dbc8235e695bb9b2bc74ce913d6e321e14826c4022d6a09a13ef",
+			"urls": [
+				"bzz-raw://13e7c6bdc94ee04ddcae3b5fe4ddf197338a77d1452e14b0d3a3f3fd5e3011d7",
+				"dweb:/ipfs/Qmc7RxiuRrHS1YowT7XYsctKeL4A1fuukK3cA7WP6evoyZ"
+			]
+		}
+	},
+	"version": 1
+}
