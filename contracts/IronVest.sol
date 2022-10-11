@@ -13,9 +13,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 /// @dev This contract is upgradeable please use a framework i.e truffle or hardhat for deploying it.
 /// @notice This contract contains the power of accesscontrol.
 /// This contract is used for token vesting.
-/// There are two different was defined in the contract with different functionalities.
-/// The time management in the contract is in standard epoch time.
-/// The add vesting functionalities is secured from replay attach by a specific signature.
+/// There are two different vesting defined in the contract with different functionalities.
 /// Have fun reading it. Hopefully it's bug-free. God Bless.
 contract IronVest is
     Initializable,
@@ -90,6 +88,24 @@ contract IronVest is
         uint256 remaining
     );
 
+    /// @notice Modifier to check if vester.
+    modifier onlyVester() {
+        require(
+            hasRole(VESTER_ROLE, _msgSender()),
+            "AccessDenied : Only Vester Call This Function"
+        );
+        _;
+    }
+
+    /// @notice Modifier to check if default admin.
+    modifier onlyAdmin() {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            "AccessDenied : Only Admin Call This Function"
+        );
+        _;
+    }
+
     /// @notice This struct will save all the pool information about simple vesting i.e addVesting().
     struct PoolInfo {
         string poolName;
@@ -147,7 +163,6 @@ contract IronVest is
         uint256 nonCliffLastWithdrawal; /// used for internal claimable calculation.
     }
 
-    /// Mappinggs
     /// Cliff mapping with the check if the specific pool relate to the cliff vesting or not.
     mapping(uint256 => bool) public cliff;
     /// Pool information against specific poolid for simple vesting.
@@ -163,24 +178,6 @@ contract IronVest is
         public userNonCliffInfo;
     /// Hash Information to avoid the replay from same _messageHash
     mapping(bytes32 => bool) public usedHashes;
-
-    /// @notice Modifier to check if vester.
-    modifier onlyVester() {
-        require(
-            hasRole(VESTER_ROLE, _msgSender()),
-            "AccessDenied : Only Vester Call This Function"
-        );
-        _;
-    }
-
-    /// @notice Modifier to check if default admin.
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "AccessDenied : Only Admin Call This Function"
-        );
-        _;
-    }
 
     /// @dev deploy the contract by upgradeable proxy by any framewrok.
     /// @param _vestingName : A name to our vesting contract.
@@ -418,25 +415,6 @@ contract IronVest is
         usedHashes[_messageHash(_poolName, _tokenAddress, _keyHash)] = true;
     }
 
-    /// @dev this function use to withdraw tokens that send to the contract mistakenly
-    /// @param _token : Token address that is required to withdraw from contract.
-    /// @param _amount : How much tokens need to withdraw.
-    function emergencyWithdraw(IERC20Upgradeable _token, uint256 _amount)
-        external
-        onlyAdmin
-    {
-        IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
-    }
-
-    /// @dev Functions is called by a default admin.
-    /// @param _signer : An address whom admin want to be a signer.
-    function setSigner(address _signer) external onlyAdmin {
-        require(
-            _signer != address(0x00),
-            "Invalid : Signer Address Is Invalid"
-        );
-        signer = _signer;
-    }
 
     /// @dev User must have allocation in the pool.
     /// @notice This is for claiming cliff vesting.
@@ -499,6 +477,26 @@ contract IronVest is
             _msgSender(),
             remainingTobeClaimable
         );
+    }
+
+    /// @dev this function use to withdraw tokens that send to the contract mistakenly
+    /// @param _token : Token address that is required to withdraw from contract.
+    /// @param _amount : How much tokens need to withdraw.
+    function emergencyWithdraw(IERC20Upgradeable _token, uint256 _amount)
+        external
+        onlyAdmin
+    {
+        IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
+    }
+
+    /// @dev Functions is called by a default admin.
+    /// @param _signer : An address whom admin want to be a signer.
+    function setSigner(address _signer) external onlyAdmin {
+        require(
+            _signer != address(0x00),
+            "Invalid : Signer Address Is Invalid"
+        );
+        signer = _signer;
     }
 
     /// @dev This is check claimable for simple vesting.
@@ -683,12 +681,12 @@ contract IronVest is
         require(_sig.length == 65, "invalid signature length");
 
         assembly {
-            ///First 32 bytes stores the length of the signature
+            /// First 32 bytes stores the length of the signature
 
-            ///add(_sig, 32) = pointer of _sig + 32
-            ///effectively, skips first 32 bytes of signature
+            /// add(_sig, 32) = pointer of _sig + 32
+            /// effectively, skips first 32 bytes of signature
 
-            ///mload(p) loads next 32 bytes starting at the memory address p into memory
+            /// mload(p) loads next 32 bytes starting at the memory address p into memory
 
             /// first 32 bytes, after the length prefix
             r := mload(add(_sig, 32))
