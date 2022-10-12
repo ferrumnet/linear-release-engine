@@ -329,11 +329,7 @@ contract IronVest is
         require(
             _cliffPeriodEndTime > block.timestamp,
             "IIronVest : Cliff Vesting Time Must Be Lesser Than Vesting Time"
-<<<<<<< HEAD
-        );
-=======
      );
->>>>>>> 983062ac98b6442d32d1b3d91a55f180907f5cde
         require(
             signatureVerification(
                 _signature,
