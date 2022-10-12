@@ -96,8 +96,8 @@ contract IronVest is
         _;
     }
 
-    /// @notice Modifier to check if default admin.
-    modifier onlyAdmin() {
+    /// @notice Modifier to check if DEFAULT_ADMIN and Deployer of contract.
+    modifier onlyOwner() {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
             "AccessDenied : Only Admin Call This Function"
@@ -328,8 +328,8 @@ contract IronVest is
         );
         require(
             _cliffPeriodEndTime > block.timestamp,
-            "IIronVest : Cliff Period Time Must Be Greater Than Current Time"
-        );
+            "IIronVest : Cliff Vesting Time Must Be Lesser Than Vesting Time"
+     );
         require(
             signatureVerification(
                 _signature,
@@ -480,14 +480,14 @@ contract IronVest is
     /// @param _amount : How much tokens need to withdraw.
     function emergencyWithdraw(IERC20Upgradeable _token, uint256 _amount)
         external
-        onlyAdmin
+        onlyOwner
     {
         IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
     }
 
     /// @dev Functions is called by a default admin.
     /// @param _signer : An address whom admin want to be a signer.
-    function setSigner(address _signer) external onlyAdmin {
+    function setSigner(address _signer) external onlyOwner {
         require(
             _signer != address(0x00),
             "Invalid : Signer Address Is Invalid"
