@@ -96,7 +96,7 @@ contract IronVest is
         _;
     }
 
-    /// @notice Modifier to check if default admin.
+    /// @notice Modifier to check if DEFAULT_ADMIN and Deployer of contract.
     modifier onlyOwner() {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
@@ -329,7 +329,7 @@ contract IronVest is
         require(
             _cliffPeriodEndTime > block.timestamp,
             "IIronVest : Cliff Vesting Time Must Be Lesser Than Vesting Time"
-     );
+        );
         require(
             signatureVerification(
                 _signature,
