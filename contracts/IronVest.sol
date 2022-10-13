@@ -329,7 +329,7 @@ contract IronVest is
         require(
             _cliffPeriodEndTime > block.timestamp,
             "IIronVest : Cliff Vesting Time Must Be Lesser Than Vesting Time"
-     );
+        );
         require(
             signatureVerification(
                 _signature,
@@ -342,10 +342,6 @@ contract IronVest is
         require(
             _cliffPercentage10000 <= 5000,
             "Percentage :Percentage Should Be less Than  50%"
-        );
-        require(
-            _cliffPercentage10000 >= 10,
-            "Percentage :Percentage Should Be More Than  0.1%"
         );
         uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
