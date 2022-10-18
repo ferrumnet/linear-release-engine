@@ -1,4 +1,4 @@
-/// SPDX-License-Identifier : MIT
+// SPDX-License-Identifier : MIT
 
 pragma solidity 0.8.17;
 
@@ -164,10 +164,6 @@ contract IronVest is
 
     /// Cliff mapping with the check if the specific pool relate to the cliff vesting or not.
     mapping(uint256 => bool) public cliff;
-    /// Pool information against specific poolid for simple vesting.
-    mapping(uint256 => PoolInfo) poolInfo;
-    /// Pool information against specific poolid for cliff vesting.
-    mapping(uint256 => CliffPoolInfo) cliffPoolInfo;
     /// Double mapping to check user information by address and poolid for cliff vesting.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     /// Double mapping to check user information by address and poolid for cliff vesting.
@@ -177,6 +173,10 @@ contract IronVest is
         public userNonCliffInfo;
     /// Hash Information to avoid the replay from same _messageHash
     mapping(bytes32 => bool) public usedHashes;
+    /// Pool information against specific poolid for simple vesting.
+    mapping(uint256 => PoolInfo) internal _poolInfo;
+    /// Pool information against specific poolid for cliff vesting.
+    mapping(uint256 => CliffPoolInfo) internal _cliffPoolInfo;
 
     /// @dev deploy the contract by upgradeable proxy by any framewrok.
     /// @param _vestingName : A name to our vesting contract.
@@ -240,7 +240,7 @@ contract IronVest is
                 _userAlloc[i] / (_vestingEndTime - block.timestamp)
             );
         }
-        poolInfo[vestingPoolSize] = PoolInfo(
+        _poolInfo[vestingPoolSize] = PoolInfo(
             _poolName,
             block.timestamp,
             _vestingEndTime,
@@ -276,7 +276,7 @@ contract IronVest is
     function claim(uint256 _poolId) external nonReentrant {
         uint256 transferAble = claimable(_poolId, _msgSender());
         require(transferAble > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(poolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(_poolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -341,7 +341,7 @@ contract IronVest is
         );
         require(
             _cliffPercentage10000 <= 5000,
-            "Percentage :Percentage Should Be less Than  50%"
+            "Percentage : Percentage Should Be less Than 50%"
         );
         uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
@@ -372,7 +372,7 @@ contract IronVest is
             );
         }
         uint256 nonCliffVestingPeriod = _vestingEndTime - _cliffPeriodEndTime;
-        cliffPoolInfo[vestingPoolSize] = CliffPoolInfo(
+        _cliffPoolInfo[vestingPoolSize] = CliffPoolInfo(
             _poolName,
             block.timestamp,
             _vestingEndTime,
@@ -416,13 +416,13 @@ contract IronVest is
     function claimCliff(uint256 _poolId) external nonReentrant {
         UserCliffInfo storage info = userCliffInfo[_poolId][_msgSender()];
         require(
-            cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
+            _cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
             "IIronVest : Cliff Period Is Not Over Yet"
         );
 
         uint256 transferAble = cliffClaimable(_poolId, _msgSender());
         require(transferAble > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(_cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -448,14 +448,14 @@ contract IronVest is
     function claimNonCliff(uint256 _poolId) external nonReentrant {
         UserNonCliffInfo storage info = userNonCliffInfo[_poolId][_msgSender()];
         require(
-            cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
+            _cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
             "IIronVest : Cliff Period Is Not Over Yet"
         );
 
         uint256 transferAble = nonCliffClaimable(_poolId, _msgSender());
         uint256 claimed = transferAble + info.claimedAmnt;
         require(transferAble > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(_cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -506,9 +506,9 @@ contract IronVest is
             info.allocation > 0,
             "Allocation : You Don't have allocation in this pool"
         );
-        if (poolInfo[_poolId].vestingEndTime <= block.timestamp) {
+        if (_poolInfo[_poolId].vestingEndTime <= block.timestamp) {
             claimable = info.remainingToBeClaimable;
-        } else if (poolInfo[_poolId].vestingEndTime >= block.timestamp) {
+        } else if (_poolInfo[_poolId].vestingEndTime >= block.timestamp) {
             claimable =
                 (block.timestamp - info.lastWithdrawal) *
                 info.releaseRatePerSec;
@@ -532,8 +532,10 @@ contract IronVest is
             "Allocation : You Don't have allocation in this pool"
         );
 
-        if (cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
-            if (cliffPoolInfo[_poolId].cliffVestingEndTime >= block.timestamp) {
+        if (_cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
+            if (
+                _cliffPoolInfo[_poolId].cliffVestingEndTime >= block.timestamp
+            ) {
                 cliffClaimable =
                     (block.timestamp - info.cliffLastWithdrawal) *
                     info.cliffReleaseRatePerSec;
@@ -559,8 +561,8 @@ contract IronVest is
             "Allocation : You Don't have allocation in this pool"
         );
 
-        if (cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
-            if (cliffPoolInfo[_poolId].vestingEndTime >= block.timestamp) {
+        if (_cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
+            if (_cliffPoolInfo[_poolId].vestingEndTime >= block.timestamp) {
                 nonCliffClaimable =
                     (block.timestamp - info.nonCliffLastWithdrawal) *
                     info.nonCliffReleaseRatePerSec;
@@ -571,7 +573,7 @@ contract IronVest is
     }
 
     /// @dev As we are using poolId as unique ID which is supposed to return pool info i.e
-    /// poolInfo and cliffPoolInfo but it unique for the contract level this function will
+    /// _poolInfo and _cliffPoolInfo but it unique for the contract level this function will
     /// return the values from where this poolId relate to.
     /// @param _poolId : Every Pool has a unique Id.
     /// @return isCliff : If this Id relate to the cliffPool or note?
@@ -602,7 +604,7 @@ contract IronVest is
     {
         bool isCliff = cliff[_poolId];
         if (isCliff) {
-            CliffPoolInfo memory info = cliffPoolInfo[_poolId];
+            CliffPoolInfo memory info = _cliffPoolInfo[_poolId];
             return (
                 isCliff,
                 info.poolName,
@@ -616,7 +618,7 @@ contract IronVest is
                 info.cliffLockPercentage10000
             );
         } else {
-            PoolInfo memory info = poolInfo[_poolId];
+            PoolInfo memory info = _poolInfo[_poolId];
             return (
                 isCliff,
                 info.poolName,
