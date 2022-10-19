@@ -52,6 +52,14 @@ module.exports = {
     bscTestnet: {
       provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
       network_id: 97,
+      // gas: 5500000,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      // skipDryRun: true     
+    },
+    sepoliaTestnet: {
+      provider: () => new HDWalletProvider(mnemonic, `https://rpc.sepolia.org`),
+      network_id: 11155111,
       gas: 5500000,
       confirmations: 2,
       timeoutBlocks: 200,

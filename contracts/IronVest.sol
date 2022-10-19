@@ -1,4 +1,4 @@
-/// SPDX-License-Identifier : MIT
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.17;
 
@@ -21,6 +21,64 @@ contract IronVest is
 {
     /// @notice Declaration of token interface with SafeErc20.
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    /// @notice This struct will save all the pool information about simple vesting i.e addVesting().
+    struct PoolInfo {
+        string poolName;
+        uint256 startTime; /// block.timestamp while creating new pool.
+        uint256 vestingEndTime; /// time stamp when to end the vesting.
+        address tokenAddress; /// token which we want to vest in the contract.
+        uint256 totalVestedTokens; /// total amount of tokens.
+        address[] usersAddresses; /// addresses of users an array.
+        uint256[] usersAlloc; /// allocation to user with respect to usersAddresses.
+    }
+
+    /// @notice Used to store information about the user in simple vesting.
+    struct UserInfo {
+        uint256 allocation; /// total allocation to a user.
+        uint256 claimedAmount; /// claimedAmnt + claimed.
+        uint256 remainingToBeClaimable; /// remaining claimable fully claimable once time ended.
+        uint256 lastWithdrawal; /// block.timestamp used for internal claimable calculation
+        uint256 releaseRatePerSec; /// calculated as vestingTime/(vestingTime-starttime)
+    }
+
+    /// @notice This struct will save all the pool information about simple vesting i.e addCliffVesting().
+    struct CliffPoolInfo {
+        string poolName;
+        uint256 startTime; /// block.timestamp while creating new pool.
+        uint256 vestingEndTime; /// total time to end cliff vesting.
+        uint256 cliffVestingEndTime; /// time in which user can vest cliff tokens should be less than vestingendtime.
+        uint256 nonCliffVestingPeriod; /// calculated as cliffPeriod-vestingEndTime. in seconds
+        uint256 cliffPeriodEndTime; ///in this time tenure the tokens keep locked in contract. a timestamp
+        address tokenAddress; /// token which we want to vest in the contract.
+        uint256 totalVestedTokens; /// total amount of tokens.
+        uint256 cliffLockPercentage10000; /// for percentage calculation using 10000 instead 100.
+        address[] usersAddresses; /// addresses of users an array.
+        uint256[] usersAlloc; /// allocation to user with respect to usersAddresses.
+    }
+
+    /// @notice Used to store information about the user in cliff vesting.
+    struct UserCliffInfo {
+        uint256 allocation; /// total allocation cliff+noncliff
+        uint256 cliffAlloc; /// (totalallocation*cliffPercentage)/10000
+        uint256 claimedAmnt; /// claimedAmnt-claimableClaimed.
+        uint256 tokensReleaseTime; /// the time we used to start vesting tokens.
+        uint256 remainingToBeClaimableCliff; /// remaining claimable fully claimable once time ended.
+        uint256 cliffReleaseRatePerSec; /// calculated as cliffAlloc/(cliffendtime -cliffPeriodendtime).
+        uint256 cliffLastWithdrawal; /// block.timestamp used for internal claimable calculation.
+    }
+
+    /// @notice Used to store information about the user of non cliff in cliff vesting.
+    struct UserNonCliffInfo {
+        uint256 allocation; /// total allocation cliff+noncliff
+        uint256 nonCliffAlloc; /// (totalallocation-cliffalloc)
+        uint256 claimedAmnt; /// claimedAmnt-claimableClaimed
+        uint256 tokensReleaseTime; /// the time we used to start vesting tokens.
+        uint256 remainingToBeClaimableNonCliff; /// remaining claimable fully claimable once time ended.
+        uint256 nonCliffReleaseRatePerSec; /// calculated as nonCliffAlloc/(cliffVestingEndTime-vestingEndTime).
+        uint256 nonCliffLastWithdrawal; /// used for internal claimable calculation.
+    }
+
     /// @notice Vester role initilization.
     bytes32 public constant VESTER_ROLE = keccak256("VESTER_ROLE");
     /// @notice Public variable to strore contract name.
@@ -29,6 +87,22 @@ contract IronVest is
     uint256 public vestingPoolSize;
     /// @notice Signer address. Transaction supposed to be sign be this address.
     address public signer;
+
+    /// Cliff mapping with the check if the specific pool relate to the cliff vesting or not.
+    mapping(uint256 => bool) public cliff;
+    /// Double mapping to check user information by address and poolid for cliff vesting.
+    mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+    /// Double mapping to check user information by address and poolid for cliff vesting.
+    mapping(uint256 => mapping(address => UserCliffInfo)) public userCliffInfo;
+    /// Double mapping to check user information by address and poolid for cliff vesting.
+    mapping(uint256 => mapping(address => UserNonCliffInfo))
+        public userNonCliffInfo;
+    /// Hash Information to avoid the replay from same _messageHash
+    mapping(bytes32 => bool) public usedHashes;
+    /// Pool information against specific poolid for simple vesting.
+    mapping(uint256 => PoolInfo) internal _poolInfo;
+    /// Pool information against specific poolid for cliff vesting.
+    mapping(uint256 => CliffPoolInfo) internal _cliffPoolInfo;
 
     /// @dev Creating events for all necessary values while adding simple vesting.
     /// @notice vester address and poolId are indexed.
@@ -105,79 +179,6 @@ contract IronVest is
         _;
     }
 
-    /// @notice This struct will save all the pool information about simple vesting i.e addVesting().
-    struct PoolInfo {
-        string poolName;
-        uint256 startTime; /// block.timestamp while creating new pool.
-        uint256 vestingEndTime; /// time stamp when to end the vesting.
-        address tokenAddress; /// token which we want to vest in the contract.
-        uint256 totalVestedTokens; /// total amount of tokens.
-        address[] usersAddresses; /// addresses of users an array.
-        uint256[] usersAlloc; /// allocation to user with respect to usersAddresses.
-    }
-
-    /// @notice Used to store information about the user in simple vesting.
-    struct UserInfo {
-        uint256 allocation; /// total allocation to a user.
-        uint256 claimedAmount; /// claimedAmnt + claimed.
-        uint256 remainingToBeClaimable; /// remaining claimable fully claimable once time ended.
-        uint256 lastWithdrawal; /// block.timestamp used for internal claimable calculation
-        uint256 releaseRatePerSec; /// calculated as vestingTime/(vestingTime-starttime)
-    }
-
-    /// @notice This struct will save all the pool information about simple vesting i.e addCliffVesting().
-    struct CliffPoolInfo {
-        string poolName;
-        uint256 startTime; /// block.timestamp while creating new pool.
-        uint256 vestingEndTime; /// total time to end cliff vesting.
-        uint256 cliffVestingEndTime; /// time in which user can vest cliff tokens should be less than vestingendtime.
-        uint256 nonCliffVestingPeriod; /// calculated as cliffPeriod-vestingEndTime. in seconds
-        uint256 cliffPeriodEndTime; ///in this time tenure the tokens keep locked in contract. a timestamp
-        address tokenAddress; /// token which we want to vest in the contract.
-        uint256 totalVestedTokens; /// total amount of tokens.
-        uint256 cliffLockPercentage10000; /// for percentage calculation using 10000 instead 100.
-        address[] usersAddresses; /// addresses of users an array.
-        uint256[] usersAlloc; /// allocation to user with respect to usersAddresses.
-    }
-
-    /// @notice Used to store information about the user in cliff vesting.
-    struct UserCliffInfo {
-        uint256 allocation; /// total allocation cliff+noncliff
-        uint256 cliffAlloc; /// (totalallocation*cliffPercentage)/10000
-        uint256 claimedAmnt; /// claimedAmnt-claimableClaimed.
-        uint256 tokensReleaseTime; /// the time we used to start vesting tokens.
-        uint256 remainingToBeClaimableCliff; /// remaining claimable fully claimable once time ended.
-        uint256 cliffReleaseRatePerSec; /// calculated as cliffAlloc/(cliffendtime -cliffPeriodendtime).
-        uint256 cliffLastWithdrawal; /// block.timestamp used for internal claimable calculation.
-    }
-
-    /// @notice Used to store information about the user of non cliff in cliff vesting.
-    struct UserNonCliffInfo {
-        uint256 allocation; /// total allocation cliff+noncliff
-        uint256 nonCliffAlloc; /// (totalallocation-cliffalloc)
-        uint256 claimedAmnt; /// claimedAmnt-claimableClaimed
-        uint256 tokensReleaseTime; /// the time we used to start vesting tokens.
-        uint256 remainingToBeClaimableNonCliff; /// remaining claimable fully claimable once time ended.
-        uint256 nonCliffReleaseRatePerSec; /// calculated as nonCliffAlloc/(cliffVestingEndTime-vestingEndTime).
-        uint256 nonCliffLastWithdrawal; /// used for internal claimable calculation.
-    }
-
-    /// Cliff mapping with the check if the specific pool relate to the cliff vesting or not.
-    mapping(uint256 => bool) public cliff;
-    /// Pool information against specific poolid for simple vesting.
-    mapping(uint256 => PoolInfo) poolInfo;
-    /// Pool information against specific poolid for cliff vesting.
-    mapping(uint256 => CliffPoolInfo) cliffPoolInfo;
-    /// Double mapping to check user information by address and poolid for cliff vesting.
-    mapping(uint256 => mapping(address => UserInfo)) public userInfo;
-    /// Double mapping to check user information by address and poolid for cliff vesting.
-    mapping(uint256 => mapping(address => UserCliffInfo)) public userCliffInfo;
-    /// Double mapping to check user information by address and poolid for cliff vesting.
-    mapping(uint256 => mapping(address => UserNonCliffInfo))
-        public userNonCliffInfo;
-    /// Hash Information to avoid the replay from same _messageHash
-    mapping(bytes32 => bool) public usedHashes;
-
     /// @dev deploy the contract by upgradeable proxy by any framewrok.
     /// @param _vestingName : A name to our vesting contract.
     /// @param _signer : An address verification for facing the replay attack issues.
@@ -240,7 +241,7 @@ contract IronVest is
                 _userAlloc[i] / (_vestingEndTime - block.timestamp)
             );
         }
-        poolInfo[vestingPoolSize] = PoolInfo(
+        _poolInfo[vestingPoolSize] = PoolInfo(
             _poolName,
             block.timestamp,
             _vestingEndTime,
@@ -276,7 +277,7 @@ contract IronVest is
     function claim(uint256 _poolId) external nonReentrant {
         uint256 transferAble = claimable(_poolId, _msgSender());
         require(transferAble > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(poolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(_poolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -341,7 +342,7 @@ contract IronVest is
         );
         require(
             _cliffPercentage10000 <= 5000,
-            "Percentage :Percentage Should Be less Than  50%"
+            "Percentage : Percentage Should Be less Than 50%"
         );
         uint256 totalVesting;
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
@@ -372,7 +373,7 @@ contract IronVest is
             );
         }
         uint256 nonCliffVestingPeriod = _vestingEndTime - _cliffPeriodEndTime;
-        cliffPoolInfo[vestingPoolSize] = CliffPoolInfo(
+        _cliffPoolInfo[vestingPoolSize] = CliffPoolInfo(
             _poolName,
             block.timestamp,
             _vestingEndTime,
@@ -416,13 +417,13 @@ contract IronVest is
     function claimCliff(uint256 _poolId) external nonReentrant {
         UserCliffInfo storage info = userCliffInfo[_poolId][_msgSender()];
         require(
-            cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
+            _cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
             "IIronVest : Cliff Period Is Not Over Yet"
         );
 
         uint256 transferAble = cliffClaimable(_poolId, _msgSender());
         require(transferAble > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(_cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -448,14 +449,14 @@ contract IronVest is
     function claimNonCliff(uint256 _poolId) external nonReentrant {
         UserNonCliffInfo storage info = userNonCliffInfo[_poolId][_msgSender()];
         require(
-            cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
+            _cliffPoolInfo[_poolId].cliffPeriodEndTime < block.timestamp,
             "IIronVest : Cliff Period Is Not Over Yet"
         );
 
         uint256 transferAble = nonCliffClaimable(_poolId, _msgSender());
         uint256 claimed = transferAble + info.claimedAmnt;
         require(transferAble > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
+        IERC20Upgradeable(_cliffPoolInfo[_poolId].tokenAddress).safeTransfer(
             _msgSender(),
             transferAble
         );
@@ -491,6 +492,68 @@ contract IronVest is
         signer = _signer;
     }
 
+    /// @dev As we are using poolId as unique ID which is supposed to return pool info i.e
+    /// _poolInfo and _cliffPoolInfo but it unique for the contract level this function will
+    /// return the values from where this poolId relate to.
+    /// @param _poolId : Every Pool has a unique Id.
+    /// @return isCliff : If this Id relate to the cliffPool or note?
+    /// @return poolName : PoolName If exist.
+    /// @return startTime : When does this pool initialized .
+    /// @return vestingEndTime : Vesting End Time of this Pool.
+    /// @return cliffVestingEndTime : CliffVestingEndTime If exist and if also a cliffPool.
+    /// @return nonCliffVestingPeriod : Non CliffVesting Period If exist and also a cliffPool.
+    /// @return cliffPeriodEndTime : Cliff Period End Time If exist and also a cliffPool.
+    /// @return tokenAddress :  Vested token address If exist.
+    /// @return totalVestedTokens : total Vested Tokens If exist.
+    /// @return cliffLockPercentage : CliffLockPercentage If exist and also a cliffPool.
+    function poolInformation(uint256 _poolId)
+        external
+        view
+        returns (
+            bool isCliff,
+            string memory poolName,
+            uint256 startTime,
+            uint256 vestingEndTime,
+            uint256 cliffVestingEndTime,
+            uint256 nonCliffVestingPeriod,
+            uint256 cliffPeriodEndTime,
+            address tokenAddress,
+            uint256 totalVestedTokens,
+            uint256 cliffLockPercentage
+        )
+    {
+        bool isCliff = cliff[_poolId];
+        if (isCliff) {
+            CliffPoolInfo memory info = _cliffPoolInfo[_poolId];
+            return (
+                isCliff,
+                info.poolName,
+                info.startTime,
+                info.vestingEndTime,
+                info.cliffVestingEndTime,
+                info.nonCliffVestingPeriod,
+                info.cliffPeriodEndTime,
+                info.tokenAddress,
+                info.totalVestedTokens,
+                info.cliffLockPercentage10000
+            );
+        } else {
+            PoolInfo memory info = _poolInfo[_poolId];
+            return (
+                isCliff,
+                info.poolName,
+                info.startTime,
+                info.vestingEndTime,
+                0,
+                0,
+                0,
+                info.tokenAddress,
+                info.totalVestedTokens,
+                0
+            );
+        }
+    }
+
     /// @dev This is check claimable for simple vesting.
     /// @param _poolId : Pool Id from which pool user want to check.
     /// @param _user : User address for which user want to check claimables.
@@ -506,13 +569,13 @@ contract IronVest is
             info.allocation > 0,
             "Allocation : You Don't have allocation in this pool"
         );
-        if (poolInfo[_poolId].vestingEndTime <= block.timestamp) {
+        if (_poolInfo[_poolId].vestingEndTime <= block.timestamp) {
             claimable = info.remainingToBeClaimable;
-        } else if (poolInfo[_poolId].vestingEndTime >= block.timestamp) {
+        } else
             claimable =
                 (block.timestamp - info.lastWithdrawal) *
                 info.releaseRatePerSec;
-        }
+
         return (claimable);
     }
 
@@ -532,8 +595,10 @@ contract IronVest is
             "Allocation : You Don't have allocation in this pool"
         );
 
-        if (cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
-            if (cliffPoolInfo[_poolId].cliffVestingEndTime >= block.timestamp) {
+        if (_cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
+            if (
+                _cliffPoolInfo[_poolId].cliffVestingEndTime >= block.timestamp
+            ) {
                 cliffClaimable =
                     (block.timestamp - info.cliffLastWithdrawal) *
                     info.cliffReleaseRatePerSec;
@@ -559,8 +624,8 @@ contract IronVest is
             "Allocation : You Don't have allocation in this pool"
         );
 
-        if (cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
-            if (cliffPoolInfo[_poolId].vestingEndTime >= block.timestamp) {
+        if (_cliffPoolInfo[_poolId].cliffPeriodEndTime <= block.timestamp) {
+            if (_cliffPoolInfo[_poolId].vestingEndTime >= block.timestamp) {
                 nonCliffClaimable =
                     (block.timestamp - info.nonCliffLastWithdrawal) *
                     info.nonCliffReleaseRatePerSec;
@@ -568,68 +633,6 @@ contract IronVest is
         }
 
         return (nonCliffClaimable);
-    }
-
-    /// @dev As we are using poolId as unique ID which is supposed to return pool info i.e
-    /// poolInfo and cliffPoolInfo but it unique for the contract level this function will
-    /// return the values from where this poolId relate to.
-    /// @param _poolId : Every Pool has a unique Id.
-    /// @return isCliff : If this Id relate to the cliffPool or note?
-    /// @return poolName : PoolName If exist.
-    /// @return startTime : When does this pool initialized .
-    /// @return vestingEndTime : Vesting End Time of this Pool.
-    /// @return cliffVestingEndTime : CliffVestingEndTime If exist and if also a cliffPool.
-    /// @return nonCliffVestingPeriod : Non CliffVesting Period If exist and also a cliffPool.
-    /// @return cliffPeriodEndTime : Cliff Period End Time If exist and also a cliffPool.
-    /// @return tokenAddress :  Vested token address If exist.
-    /// @return totalVestedTokens : total Vested Tokens If exist.
-    /// @return cliffLockPercentage : CliffLockPercentage If exist and also a cliffPool.
-    function poolInformation(uint256 _poolId)
-        public
-        view
-        returns (
-            bool isCliff,
-            string memory poolName,
-            uint256 startTime,
-            uint256 vestingEndTime,
-            uint256 cliffVestingEndTime,
-            uint256 nonCliffVestingPeriod,
-            uint256 cliffPeriodEndTime,
-            address tokenAddress,
-            uint256 totalVestedTokens,
-            uint256 cliffLockPercentage
-        )
-    {
-        bool isCliff = cliff[_poolId];
-        if (isCliff) {
-            CliffPoolInfo memory info = cliffPoolInfo[_poolId];
-            return (
-                isCliff,
-                info.poolName,
-                info.startTime,
-                info.vestingEndTime,
-                info.cliffVestingEndTime,
-                info.nonCliffVestingPeriod,
-                info.cliffPeriodEndTime,
-                info.tokenAddress,
-                info.totalVestedTokens,
-                info.cliffLockPercentage10000
-            );
-        } else {
-            PoolInfo memory info = poolInfo[_poolId];
-            return (
-                isCliff,
-                info.poolName,
-                info.startTime,
-                info.vestingEndTime,
-                0,
-                0,
-                0,
-                info.tokenAddress,
-                info.totalVestedTokens,
-                0
-            );
-        }
     }
 
     /// @dev For geting signer address from salt and sgnature.
