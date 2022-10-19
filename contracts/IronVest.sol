@@ -1,4 +1,4 @@
-// SPDX-License-Identifier : MIT
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.17;
 
@@ -492,6 +492,68 @@ contract IronVest is
         signer = _signer;
     }
 
+    /// @dev As we are using poolId as unique ID which is supposed to return pool info i.e
+    /// _poolInfo and _cliffPoolInfo but it unique for the contract level this function will
+    /// return the values from where this poolId relate to.
+    /// @param _poolId : Every Pool has a unique Id.
+    /// @return isCliff : If this Id relate to the cliffPool or note?
+    /// @return poolName : PoolName If exist.
+    /// @return startTime : When does this pool initialized .
+    /// @return vestingEndTime : Vesting End Time of this Pool.
+    /// @return cliffVestingEndTime : CliffVestingEndTime If exist and if also a cliffPool.
+    /// @return nonCliffVestingPeriod : Non CliffVesting Period If exist and also a cliffPool.
+    /// @return cliffPeriodEndTime : Cliff Period End Time If exist and also a cliffPool.
+    /// @return tokenAddress :  Vested token address If exist.
+    /// @return totalVestedTokens : total Vested Tokens If exist.
+    /// @return cliffLockPercentage : CliffLockPercentage If exist and also a cliffPool.
+    function poolInformation(uint256 _poolId)
+        external
+        view
+        returns (
+            bool isCliff,
+            string memory poolName,
+            uint256 startTime,
+            uint256 vestingEndTime,
+            uint256 cliffVestingEndTime,
+            uint256 nonCliffVestingPeriod,
+            uint256 cliffPeriodEndTime,
+            address tokenAddress,
+            uint256 totalVestedTokens,
+            uint256 cliffLockPercentage
+        )
+    {
+        bool isCliff = cliff[_poolId];
+        if (isCliff) {
+            CliffPoolInfo memory info = _cliffPoolInfo[_poolId];
+            return (
+                isCliff,
+                info.poolName,
+                info.startTime,
+                info.vestingEndTime,
+                info.cliffVestingEndTime,
+                info.nonCliffVestingPeriod,
+                info.cliffPeriodEndTime,
+                info.tokenAddress,
+                info.totalVestedTokens,
+                info.cliffLockPercentage10000
+            );
+        } else {
+            PoolInfo memory info = _poolInfo[_poolId];
+            return (
+                isCliff,
+                info.poolName,
+                info.startTime,
+                info.vestingEndTime,
+                0,
+                0,
+                0,
+                info.tokenAddress,
+                info.totalVestedTokens,
+                0
+            );
+        }
+    }
+
     /// @dev This is check claimable for simple vesting.
     /// @param _poolId : Pool Id from which pool user want to check.
     /// @param _user : User address for which user want to check claimables.
@@ -509,10 +571,10 @@ contract IronVest is
         );
         if (_poolInfo[_poolId].vestingEndTime <= block.timestamp) {
             claimable = info.remainingToBeClaimable;
-        }
-        claimable =
-            (block.timestamp - info.lastWithdrawal) *
-            info.releaseRatePerSec;
+        } else
+            claimable =
+                (block.timestamp - info.lastWithdrawal) *
+                info.releaseRatePerSec;
 
         return (claimable);
     }
@@ -571,68 +633,6 @@ contract IronVest is
         }
 
         return (nonCliffClaimable);
-    }
-
-    /// @dev As we are using poolId as unique ID which is supposed to return pool info i.e
-    /// _poolInfo and _cliffPoolInfo but it unique for the contract level this function will
-    /// return the values from where this poolId relate to.
-    /// @param _poolId : Every Pool has a unique Id.
-    /// @return isCliff : If this Id relate to the cliffPool or note?
-    /// @return poolName : PoolName If exist.
-    /// @return startTime : When does this pool initialized .
-    /// @return vestingEndTime : Vesting End Time of this Pool.
-    /// @return cliffVestingEndTime : CliffVestingEndTime If exist and if also a cliffPool.
-    /// @return nonCliffVestingPeriod : Non CliffVesting Period If exist and also a cliffPool.
-    /// @return cliffPeriodEndTime : Cliff Period End Time If exist and also a cliffPool.
-    /// @return tokenAddress :  Vested token address If exist.
-    /// @return totalVestedTokens : total Vested Tokens If exist.
-    /// @return cliffLockPercentage : CliffLockPercentage If exist and also a cliffPool.
-    function poolInformation(uint256 _poolId)
-        public
-        view
-        returns (
-            bool isCliff,
-            string memory poolName,
-            uint256 startTime,
-            uint256 vestingEndTime,
-            uint256 cliffVestingEndTime,
-            uint256 nonCliffVestingPeriod,
-            uint256 cliffPeriodEndTime,
-            address tokenAddress,
-            uint256 totalVestedTokens,
-            uint256 cliffLockPercentage
-        )
-    {
-        bool isCliff = cliff[_poolId];
-        if (isCliff) {
-            CliffPoolInfo memory info = _cliffPoolInfo[_poolId];
-            return (
-                isCliff,
-                info.poolName,
-                info.startTime,
-                info.vestingEndTime,
-                info.cliffVestingEndTime,
-                info.nonCliffVestingPeriod,
-                info.cliffPeriodEndTime,
-                info.tokenAddress,
-                info.totalVestedTokens,
-                info.cliffLockPercentage10000
-            );
-        } else {
-            PoolInfo memory info = _poolInfo[_poolId];
-            return (
-                isCliff,
-                info.poolName,
-                info.startTime,
-                info.vestingEndTime,
-                0,
-                0,
-                0,
-                info.tokenAddress,
-                info.totalVestedTokens,
-                0
-            );
-        }
     }
 
     /// @dev For geting signer address from salt and sgnature.
