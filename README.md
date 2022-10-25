@@ -1,8 +1,7 @@
 ---
 description: >-
-  Vesting done right, powered by Ferrum's Linear Release Engine. A modular
-  solution that can be used for invested, advisory, team tokens and even staking
-  or farming rewards.
+  A powerful engine enabling a per-second release rate of tokens for vesting,
+  rewards, staking, farming, and so much more.
 ---
 
 # ⚖ Linear Release Engine
