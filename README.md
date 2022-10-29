@@ -1,15 +1,41 @@
----
-description: >-
-  A powerful engine enabling a per-second release rate of tokens for vesting,
-  rewards, staking, farming, and so much more.
----
+# ⚖ Welcome to Iron Vest
 
-# ⚖ Linear Release Engine
+{% hint style="info" %}
+Iron Vest is powered by Ferrum Network's [Linear Release Engine](https://app.gitbook.com/o/4kmBmwCSGs18VyCPwcJE/s/9kF2UEQC3ocvK4ZPbN6k/).
+{% endhint %}
 
-At Ferrum, we pride ourselves on creating solutions that add value to the industry by solving critical pain points. We've done this in the past with our staking solutions, bridging solutions, MultiSwap, and more. Now we are bringing the same methodical approach to vesting, staking rewards, and more.
+## Overview
 
-The Linear Release Engine helps avoid sell pressure and dump days while giving the community, investors and advisors access to tokens on a per-second basis instead of waiting for months to get access to their tokens.&#x20;
+Iron Vest is a customizable linear release vesting product powered by Ferrum Network's [Linear Release Engine](https://app.gitbook.com/o/4kmBmwCSGs18VyCPwcJE/s/9kF2UEQC3ocvK4ZPbN6k/). Iron Vest empowers project owners with the tools to protect the community's holdings by mitigating dump days through linear release vesting.&#x20;
 
-{% content-ref url="introduction/audited-by-vidma.md" %}
-[audited-by-vidma.md](introduction/audited-by-vidma.md)
+Project owners can set up custom vesting pools with or without a cliff (lock) period. The linear release engine makes tokens claimable for end users every second after the cliff (lock) period is over. Project owners even have the option to implement a linear release for the cliff (lock) period tokens to further mitigate dump days from a large chunk of cliff (lock) period tokens.
+
+## Quick links
+
+{% content-ref url="overview/what-is-iron-vest.md" %}
+[what-is-iron-vest.md](overview/what-is-iron-vest.md)
+{% endcontent-ref %}
+
+{% content-ref url="overview/iron-vest-features.md" %}
+[iron-vest-features.md](overview/iron-vest-features.md)
+{% endcontent-ref %}
+
+{% content-ref url="audited-by-vidma.md" %}
+[audited-by-vidma.md](audited-by-vidma.md)
+{% endcontent-ref %}
+
+## Get Started
+
+We've put together some helpful guides for you to get setup with our product quickly and easily.
+
+{% content-ref url="fundamentals/getting-set-up/" %}
+[getting-set-up](fundamentals/getting-set-up/)
+{% endcontent-ref %}
+
+{% content-ref url="fundamentals/getting-set-up/permissions.md" %}
+[permissions.md](fundamentals/getting-set-up/permissions.md)
+{% endcontent-ref %}
+
+{% content-ref url="fundamentals/getting-set-up/inviting-the-community.md" %}
+[inviting-the-community.md](fundamentals/getting-set-up/inviting-the-community.md)
 {% endcontent-ref %}
