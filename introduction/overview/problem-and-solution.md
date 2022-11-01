@@ -10,12 +10,13 @@ When you review the currently available solutions, you find one or more of the f
 2. Not providing the option for linear release, only giving option for release date based vesting
 3. Not providing the option for a cliff or lock period with the linear release option
 4. Not providing the option for linear release of the cliff or locked period tokens
-5. No ability to administer necessary updates on token categories such as team tokens
+5. No ability to administer necessary updates on token categories, such as team tokens
+6. No ability to connect linear release to reward contracts such as staking, farming, and more.
 
 With our Linear Release Engine, Ferrum has set out to solve each one of these problems and bring more value to the space.
 
 ### Our Solution - Linear Release Engine
 
-We built a modular Linear Release Engine to solve the issues identified above and to enable extensibility so the open source community and developers around the world can build their own implementations powered by Ferrum's Linear Release Engine.
+We built a modular Linear Release Engine to solve the issues identified above and to enable extensibility so the open-source community and developers around the world can build their own implementations powered by Ferrum's Linear Release Engine.
 
-Linear Release Engine makes it possible to build products like Iron Vest which can solve real-world problems with token release schedules and mitigate the sell pressure caused by staking, farming, and mining rewards or vesting token release dates.
+Linear Release Engine makes it possible to build products like Iron Vest, which can solve real-world problems with token release schedules and mitigate the sell pressure caused by staking, farming, and mining rewards or vesting token release dates.
