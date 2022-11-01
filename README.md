@@ -20,8 +20,8 @@ Project owners can set up custom vesting pools with or without a cliff (lock) pe
 [iron-vest-features.md](overview/iron-vest-features.md)
 {% endcontent-ref %}
 
-{% content-ref url="audited-by-vidma.md" %}
-[audited-by-vidma.md](audited-by-vidma.md)
+{% content-ref url="iron-vest-audited-by-vidma.md" %}
+[iron-vest-audited-by-vidma.md](iron-vest-audited-by-vidma.md)
 {% endcontent-ref %}
 
 ## Get Started

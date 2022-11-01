@@ -1,7 +1,7 @@
 # Table of contents
 
 * [⚖ Welcome to Iron Vest](README.md)
-* [🔏 Audited by Vidma](audited-by-vidma.md)
+* [🔏 Iron Vest - Audited by Vidma](iron-vest-audited-by-vidma.md)
 
 ## Overview
 
