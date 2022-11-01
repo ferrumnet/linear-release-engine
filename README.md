@@ -10,6 +10,6 @@ At Ferrum, we pride ourselves on creating solutions that add value to the indust
 
 The Linear Release Engine helps avoid sell pressure and dump days while giving the community, investors and advisors access to tokens on a per-second basis instead of waiting for months to get access to their tokens.&#x20;
 
-{% content-ref url="introduction/audited-by-vidma.md" %}
-[audited-by-vidma.md](introduction/audited-by-vidma.md)
+{% content-ref url="introduction/linear-release-engine-audited-by-vidma.md" %}
+[linear-release-engine-audited-by-vidma.md](introduction/linear-release-engine-audited-by-vidma.md)
 {% endcontent-ref %}
