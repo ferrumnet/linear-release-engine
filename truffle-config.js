@@ -21,7 +21,7 @@
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 //  const mnemonic = process.env.MNEMONICS
-const mnemonic = 'impulse upon bid coconut canal sound maple wild frost wise outer sunset';
+const mnemonic = '';
 
 
 module.exports = {
@@ -50,8 +50,16 @@ module.exports = {
 
     },
     bscTestnet: {
-      provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
+      provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s2.binance.org:8545`),
       network_id: 97,
+      // gas: 5500000,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      // skipDryRun: true     
+    },
+    bsc: {
+      provider: () => new HDWalletProvider(mnemonic, `https://bsc-dataseed1.ninicoin.io	`),
+      network_id: 56,
       // gas: 5500000,
       confirmations: 2,
       timeoutBlocks: 200,
@@ -65,6 +73,14 @@ module.exports = {
       timeoutBlocks: 200,
       // skipDryRun: true     
     },
+     ethereum: {
+      provider: () => new HDWalletProvider(mnemonic, `https://ironvest:hbm9way0bjf-KVP!but@apis.ankr.com/43be895958bf4b1f81698a5fd1522c68/17d51fb5735bba322c78e521ac58c161/eth/fast/main`),
+      network_id: 1,
+      // gas: 5500000,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      // skipDryRun: true     
+    }
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -100,9 +116,9 @@ module.exports = {
       //  settings: {          // See the solidity docs for advice about optimization and evmVersion
       //   optimizer: {
       //     enabled: false,
-      //     runs: 200
+      //     runs: 1
       //   },
-      //  evmVersion: "byzantium"
+      // //  evmVersion: "byzantium"
       // }
     }
   },
