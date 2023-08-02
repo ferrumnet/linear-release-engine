@@ -103,6 +103,8 @@ contract IronVest is
     mapping(uint256 => PoolInfo) internal _poolInfo;
     /// Pool information against specific poolid for cliff vesting.
     mapping(uint256 => CliffPoolInfo) internal _cliffPoolInfo;
+    // Total tokens need agains a specific address
+    mapping(address => uint256) internal _totalVestedTokens;
 
     /// @dev Creating events for all necessary values while adding simple vesting.
     /// @notice vester address and poolId are indexed.
@@ -255,6 +257,7 @@ contract IronVest is
             address(this),
             totalVesting
         );
+        _totalVestedTokens[_tokenAddress] += totalVesting;
         emit AddVesting(
             _msgSender(),
             vestingPoolSize,
@@ -392,6 +395,7 @@ contract IronVest is
             totalVesting
         );
         cliff[vestingPoolSize] = true;
+        _totalVestedTokens[_tokenAddress] += totalVesting;
         emit CliffAddVesting(
             _msgSender(),
             vestingPoolSize,
@@ -474,12 +478,13 @@ contract IronVest is
 
     /// @dev this function use to withdraw tokens that send to the contract mistakenly
     /// @param _token : Token address that is required to withdraw from contract.
-    /// @param _amount : How much tokens need to withdraw.
-    function emergencyWithdraw(IERC20Upgradeable _token, uint256 _amount)
+    /// @notice this function send all extra unallocated tokens to admin wallet.
+    function emergencyWithdraw(IERC20Upgradeable _token)
         external
         onlyOwner
     {
-        IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
+        require(unAllocatedTokens(address(_token)) > 0, "IIronVest : Invalid TransferAble");
+        IERC20Upgradeable(_token).safeTransfer(_msgSender(), unAllocatedTokens(address(_token)));
     }
 
     /// @dev Functions is called by a default admin.
@@ -653,6 +658,18 @@ contract IronVest is
 
         address _user = _verifyMessage(_salt, v, r, s);
         return _user;
+    }
+    
+    /// @dev this function suppose to return un allocated tokens against a token address
+    /// @param _tokenAddress : Token address that is required to check from contract.
+    function unAllocatedTokens(address _tokenAddress)
+        public
+        view
+        returns (uint256 unAllocatedTokens)
+    {
+        return
+            IERC20Upgradeable(_tokenAddress).balanceOf(address(this)) -
+            _totalVestedTokens[_tokenAddress];
     }
 
     /// @dev For splititng signature.
