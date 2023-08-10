@@ -588,13 +588,12 @@ contract IronVestExtended is
 
     /// @dev this function use to withdraw tokens that send to the contract mistakenly
     /// @param _token : Token address that is required to withdraw from contract.
-    /// @notice this function send all extra unallocated tokens to admin wallet.
-    function emergencyWithdraw(IERC20Upgradeable _token)
+    /// @param _amount : How much tokens need to withdraw.
+    function emergencyWithdraw(IERC20Upgradeable _token, uint256 _amount)
         external
         onlyOwner
     {
-        require(unAllocatedTokens(address(_token)) > 0, "IIronVest : Invalid TransferAble");
-        IERC20Upgradeable(_token).safeTransfer(_msgSender(), unAllocatedTokens(address(_token)));
+        IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
     }
 
     /// @dev Functions is called by a default admin.
