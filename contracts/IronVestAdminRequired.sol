@@ -103,6 +103,8 @@ contract IronVestAdminRequired is
     mapping(uint256 => PoolInfo) internal _poolInfo;
     /// Pool information against specific poolid for cliff vesting.
     mapping(uint256 => CliffPoolInfo) internal _cliffPoolInfo;
+    // Total tokens need agains a specific address
+    mapping(address => uint256) internal _totalVestedTokens;
 
     /// @dev Creating events for all necessary values while adding simple vesting.
     /// @notice vester address and poolId are indexed.
@@ -256,6 +258,7 @@ contract IronVestAdminRequired is
             address(this),
             totalVesting
         );
+        _totalVestedTokens[_tokenAddress] += totalVesting;
         emit AddVesting(
             _msgSender(),
             vestingPoolSize,
@@ -393,6 +396,7 @@ contract IronVestAdminRequired is
             totalVesting
         );
         cliff[vestingPoolSize] = true;
+        _totalVestedTokens[_tokenAddress] += totalVesting;
         emit CliffAddVesting(
             _msgSender(),
             vestingPoolSize,
@@ -654,6 +658,18 @@ contract IronVestAdminRequired is
 
         address _user = _verifyMessage(_salt, v, r, s);
         return _user;
+    }
+
+    /// @dev this function suppose to return un allocated tokens against a token address
+    /// @param _tokenAddress : Token address that is required to check from contract.
+    function unAllocatedTokens(address _tokenAddress)
+        public
+        view
+        returns (uint256 unAllocatedTokens)
+    {
+        return
+            IERC20Upgradeable(_tokenAddress).balanceOf(address(this)) -
+            _totalVestedTokens[_tokenAddress];
     }
 
     /// @dev For splititng signature.
