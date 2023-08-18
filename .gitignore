@@ -25,6 +25,7 @@ cypress/fixtures/example.json
 .eslintcache
 
 # local env files
+.env
 .env.local
 .env.development.local
 .env.test.local
