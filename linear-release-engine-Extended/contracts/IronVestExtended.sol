@@ -86,11 +86,11 @@ contract IronVestExtended is
         address updatedAddress; /// If (deprecated = true) otherwise it will denote address(0x00)
     }
 
-    /// @notice Vester role initilization.
+    /// @notice Vester role initialization.
     bytes32 public constant VESTER_ROLE = keccak256("VESTER_ROLE");
     // @notice IronVest pre checks contract
     IronVestPreCheck public VestingCheck;
-    /// @notice Public variable to strore contract name.
+    /// @notice Public variable to store contract name.
     string public vestingContractName;
     /// @notice Unique identity of contract.
     uint256 public vestingPoolSize;
@@ -108,12 +108,12 @@ contract IronVestExtended is
     // Get updated address from outdated address
     mapping(address => address) public deprecatedAddressOf;
     /// Hash Information to avoid the replay from same _messageHash
-    mapping(bytes32 => bool) public _usedHashes;
+    mapping(bytes32 => bool) public usedHashes;
     /// Pool information against specific poolid for simple vesting.
     mapping(uint256 => PoolInfo) internal _poolInfo;
     /// Pool information against specific poolid for cliff vesting.
     mapping(uint256 => CliffPoolInfo) internal _cliffPoolInfo;
-    // Total tokens need agains a specific address
+    // Total tokens need against a specific address
     mapping(address => uint256) internal _totalVestedTokens;
 
     /// @dev Creating events for all necessary values while adding simple vesting.
@@ -174,7 +174,7 @@ contract IronVestExtended is
 
     /// @dev This event will emit if there is a need to update allocation to new address.
     /// @notice Deprecated, updated address and poolId indexed
-    event UpdateBeneficiaryWithdrawlAddress(
+    event UpdateBeneficiaryWithdrawalAddress(
         uint256 indexed poolId,
         address indexed deprecatedAddress,
         address indexed newAddress,
@@ -201,7 +201,7 @@ contract IronVestExtended is
 
     /// @dev deploy the contract by upgradeable proxy by any framewrok.
     /// @param _signer : An address verification for facing the replay attack issues.
-    /// @notice Contract is upgradeable need initilization and deployer is default admin.
+    /// @notice Contract is upgradeable need initialization and deployer is default admin.
     function initialize(
         string memory _vestingName,
         address _signer,
@@ -276,7 +276,7 @@ contract IronVestExtended is
             address(this),
             totalVesting
         );
-        _usedHashes[
+        usedHashes[
             VestingCheck.messageHash(_poolName, _tokenAddress, _keyHash)
         ] = true;
         _totalVestedTokens[_tokenAddress] += totalVesting;
@@ -315,7 +315,7 @@ contract IronVestExtended is
             _poolId,
             transferAble,
             _msgSender(),
-            info.remainingToBeClaimable
+            remainingToBeClaimable
         );
     }
 
@@ -360,7 +360,7 @@ contract IronVestExtended is
             ) == signer,
             "Signer : Invalid signer"
         );
-        _usedHashes[
+        usedHashes[
             VestingCheck.messageHash(_poolName, _tokenAddress, _keyHash)
         ] = true;
         uint256 totalVesting;
@@ -368,7 +368,7 @@ contract IronVestExtended is
             uint256 cliffAlloc = (_usersAlloc[i] * _cliffPercentage10000) /
                 10000;
             totalVesting += _usersAlloc[i];
-            uint256 nonCliffReaminingTobeclaimable = _usersAlloc[i] -
+            uint256 nonCliffRemainingTobeclaimable = _usersAlloc[i] -
                 cliffAlloc;
             userCliffInfo[vestingPoolSize][_usersAddresses[i]] = UserCliffInfo(
                 _usersAlloc[i],
@@ -385,10 +385,10 @@ contract IronVestExtended is
                 _usersAddresses[i]
             ] = UserNonCliffInfo(
                 _usersAlloc[i],
-                nonCliffReaminingTobeclaimable,
+                nonCliffRemainingTobeclaimable,
                 0,
                 _cliffPeriodEndTime,
-                nonCliffReaminingTobeclaimable,
+                nonCliffRemainingTobeclaimable,
                 (_usersAlloc[i] - (cliffAlloc)) /
                     (_vestingEndTime - _cliffPeriodEndTime),
                 _cliffPeriodEndTime,
@@ -484,10 +484,10 @@ contract IronVestExtended is
                 false,
                 address(0x00)
             );
-            cliffInfo.allocation = 0;
+            delete cliffInfo.allocation;
             cliffInfo.updatedAddress = _updatedAddress;
             cliffInfo.deprecated = true;
-            nonCliffInfo.allocation = 0;
+            delete nonCliffInfo.allocation;
             nonCliffInfo.updatedAddress = _updatedAddress;
             nonCliffInfo.deprecated = true;
             pool.usersAddresses.push(_updatedAddress);
@@ -508,14 +508,14 @@ contract IronVestExtended is
                 false,
                 address(0x00)
             );
-            info.allocation = 0;
+            delete info.allocation;
             info.updatedAddress = _updatedAddress;
             info.deprecated = true;
             pool.usersAddresses.push(_updatedAddress);
             pool.usersAlloc.push(info.allocation);
         }
         deprecatedAddressOf[_updatedAddress] = _deprecatedAddress;
-        emit UpdateBeneficiaryWithdrawlAddress(
+        emit UpdateBeneficiaryWithdrawalAddress(
             _poolId,
             _deprecatedAddress,
             _updatedAddress,
@@ -596,7 +596,7 @@ contract IronVestExtended is
         IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
     }
 
-    /// @dev Functions is called by a default admin.
+    /// @dev Function is called by a default admin.
     /// @param _signer : An address whom admin want to be a signer.
     function setSigner(address _signer) external onlyOwner {
         require(
@@ -606,9 +606,10 @@ contract IronVestExtended is
         signer = _signer;
     }
 
-    /// @dev Functions is called by a default admin.
+    /// @dev Function is called by a default admin.
     /// @param _vestingPreCheck : Reset ironvest pre check address.
     function setPreCheck(IronVestPreCheck _vestingPreCheck) external onlyOwner {
+        require(address(_vestingPreCheck) !=address(0x00), "Invalid Address");
         VestingCheck = _vestingPreCheck;
     }
 
@@ -755,10 +756,10 @@ contract IronVestExtended is
         return (cliffClaimable);
     }
 
-    /// @dev For geting signer address from salt and sgnature.
+    /// @dev For getting signer address from salt and signature.
     /// @param _signature : signature provided signed by signer.
     /// @param _poolName : Pool Name to name a pool.
-    /// @param _tokenAddress : tokenAddess of our vested tokesn.
+    /// @param _tokenAddress : tokenAddress of our vested tokesn.
     /// @param _keyHash : keyhash value to stop replay.
     /// @return Address of signer who signed the message hash.
     function signatureVerification(
@@ -775,13 +776,13 @@ contract IronVestExtended is
         (bytes32 r, bytes32 s, uint8 v) = VestingCheck.splitSignature(
             _signature
         );
-        require(!_usedHashes[_salt], "Message already used");
+        require(!usedHashes[_salt], "Message already used");
 
         address _user = VestingCheck.verifyMessage(_salt, v, r, s);
         return _user;
     }
     
-    /// @dev this function suppose to return un allocated tokens against a token address
+    /// @dev this function suppose to return unallocated tokens against a token address
     /// @param _tokenAddress : Token address that is required to check from contract.
     function unAllocatedTokens(address _tokenAddress)
         public

@@ -11,10 +11,10 @@ pragma solidity 0.8.17;
 contract IronVestPreCheck {
 
     /// @dev Only callable by vester.
-    /// @param _vestingEndTime : Vesting time is tenure in which token will be released.
-    /// @param _usersAddresses : Users addresses whom the vester want to allocate tokens and it is an array.
-    /// @param _userAlloc : Users allocation of tokens with respect to address.
-    /// @notice Create a new vesting.
+    /// @param _vestingEndTime : Vesting end time should be greater than current time.
+    /// @param _usersAddresses : Length of _usersAddresses and _userAlloc must be equal.
+    /// @param _userAlloc : Just for checking length.
+    /// @notice it is a precheck for new vesting.
     function preAddVesting(
         uint256 _vestingEndTime,
         address[] memory _usersAddresses,
@@ -31,13 +31,13 @@ contract IronVestPreCheck {
     }
 
     /// @dev Only callable by vester.
-    /// @param _vestingEndTime : Vesting time is tenure in which token will be released.
-    /// @param _cliffVestingEndTime : cliff vesting time is the end time for releasing cliff tokens.
-    /// @param _cliffPeriodEndTime : cliff period is a period in which token will be locked.
-    /// @param _cliffPercentage10000 : cliff percentage defines how may percentage should be allocated to cliff tokens.
-    /// @param _usersAddresses : Users addresses whom the vester want to allocate tokens and it is an array.
-    /// @param _usersAlloc : Users allocation of tokens with respect to address.
-    /// @notice Create a new vesting with cliff.
+    /// @param _vestingEndTime : Vesting time should be greater than _cliffVestingEndTime.
+    /// @param _cliffVestingEndTime : Cliff vesting time must Be greater than cliff period.
+    /// @param _cliffPeriodEndTime : cliff period should must be grater than block.timestamp .
+    /// @param _cliffPercentage10000 : Cliff percentage should be less than 50%.
+    /// @param _usersAddresses : Length of _usersAddresses and _userAlloc must be equal.
+    /// @param _usersAlloc : Checking Length.
+    /// @notice it is a precheck for new vesting with cliff.
     function preAddCliffVesting(
         uint256 _vestingEndTime,
         uint256 _cliffVestingEndTime,
@@ -46,10 +46,6 @@ contract IronVestPreCheck {
         address[] memory _usersAddresses,
         uint256[] memory _usersAlloc
     ) external view {
-        require(
-            _usersAddresses.length == _usersAlloc.length,
-            "IIronVest Array : Length of _usersAddresses And _userAlloc Must Be Equal"
-        );
         require(
             _cliffVestingEndTime < _vestingEndTime,
             "IIronVest : Cliff Vesting End Time Must Be Lesser Than Vesting Time"
@@ -67,14 +63,17 @@ contract IronVestPreCheck {
             _cliffPercentage10000 <= 5000,
             "Percentage : Percentage Should Be less Than 50%"
         );
+        require(
+            _usersAddresses.length == _usersAlloc.length,
+            "IIronVest Array : Length of _usersAddresses And _userAlloc Must Be Equal"
+        );
     }
 
     /// @dev Only callable by owner.
-    /// @param _poolId : On which pool admin want to update user address.
-    /// @param _deprecatedAddress : Old address that need to be updated.
-    /// @param _updatedAddress : New address that gonna replace old address.
-    /// @notice This function is useful whenever a person lose their address which has pool allocation.
-    /// @notice If else block will specify if the pool ID is related to cliff vesting or simple vesting.
+    /// @param _poolId : Pool Id should be less than _vestingPoolSize.
+    /// @param _deprecatedAddress : Deprecated Address and Updated Address Shouldn't be The Same.
+    /// @param _updatedAddress : Shouldn't be the zero address.
+    /// @notice This function used as precheck whenever a person lose their address which has pool allocation.
     function preUpdateBeneficiaryAddress(
         uint256 _poolId,
         address _deprecatedAddress,
@@ -84,7 +83,7 @@ contract IronVestPreCheck {
         require(_vestingPoolSize > _poolId, "Pool Id : Invalid _poolId");
         require(
             _updatedAddress != _deprecatedAddress,
-            "PreCheck : Deprecated Address and Updated Address Souldn't be The Same"
+            "PreCheck : Deprecated Address and Updated Address Shouldn't be The Same"
         );
         require(
             _updatedAddress != address(0x00) &&
@@ -131,7 +130,7 @@ contract IronVestPreCheck {
     }
 
     /// @dev Verify and recover signer from salt and signature.
-    /// @param _salt : A hash value which contains concatened hash of different values.
+    /// @param _salt : A hash value which contains concatenated hash of different values.
     /// @param _v : mload(p) loads next 32 bytes starting at the memory address p into memory.
     /// @param _r : First 32 bytes stores the length of the signature.
     /// @param _s : add(sig, 32) = pointer of sig + 32 effectively, skips first 32 bytes of signature.

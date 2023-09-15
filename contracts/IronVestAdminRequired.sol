@@ -79,9 +79,9 @@ contract IronVestAdminRequired is
         uint256 nonCliffLastWithdrawal; /// used for internal claimable calculation.
     }
 
-    /// @notice Vester role initilization.
+    /// @notice Vester role initialization.
     bytes32 public constant VESTER_ROLE = keccak256("VESTER_ROLE");
-    /// @notice Public variable to strore contract name.
+    /// @notice Public variable to store contract name.
     string public vestingContractName;
     /// @notice Unique identity of contract.
     uint256 public vestingPoolSize;
@@ -103,7 +103,7 @@ contract IronVestAdminRequired is
     mapping(uint256 => PoolInfo) internal _poolInfo;
     /// Pool information against specific poolid for cliff vesting.
     mapping(uint256 => CliffPoolInfo) internal _cliffPoolInfo;
-    // Total tokens need agains a specific address
+    // Total tokens need against a specific address
     mapping(address => uint256) internal _totalVestedTokens;
 
     /// @dev Creating events for all necessary values while adding simple vesting.
@@ -184,7 +184,7 @@ contract IronVestAdminRequired is
     /// @dev deploy the contract by upgradeable proxy by any framewrok.
     /// @param _vestingName : A name to our vesting contract.
     /// @param _signer : An address verification for facing the replay attack issues.
-    /// @notice Contract is upgradeable need initilization and deployer is default admin.
+    /// @notice Contract is upgradeable need initialization and deployer is default admin.
     function initialize(
         string memory _vestingName,
         address _signer,
@@ -353,7 +353,7 @@ contract IronVestAdminRequired is
             uint256 cliffAlloc = (_userAlloc[i] * _cliffPercentage10000) /
                 10000;
             totalVesting += _userAlloc[i];
-            uint256 nonCliffReaminingTobeclaimable = _userAlloc[i] - cliffAlloc;
+            uint256 nonCliffRemainingTobeclaimable = _userAlloc[i] - cliffAlloc;
             userCliffInfo[vestingPoolSize][_usersAddresses[i]] = UserCliffInfo(
                 _userAlloc[i],
                 cliffAlloc,
@@ -367,10 +367,10 @@ contract IronVestAdminRequired is
                 _usersAddresses[i]
             ] = UserNonCliffInfo(
                 _userAlloc[i],
-                nonCliffReaminingTobeclaimable,
+                nonCliffRemainingTobeclaimable,
                 0,
                 _cliffPeriodEndTime,
-                nonCliffReaminingTobeclaimable,
+                nonCliffRemainingTobeclaimable,
                 (_userAlloc[i] - (cliffAlloc)) /
                     (_vestingEndTime - _cliffPeriodEndTime),
                 _cliffPeriodEndTime
@@ -487,7 +487,7 @@ contract IronVestAdminRequired is
         IERC20Upgradeable(_token).safeTransfer(_msgSender(), _amount);
     }
 
-    /// @dev Functions is called by a default admin.
+    /// @dev Function is called by a default admin.
     /// @param _signer : An address whom admin want to be a signer.
     function setSigner(address _signer) external onlyOwner {
         require(
@@ -640,10 +640,10 @@ contract IronVestAdminRequired is
         return (nonCliffClaimable);
     }
 
-    /// @dev For geting signer address from salt and sgnature.
+    /// @dev For getting signer address from salt and signature.
     /// @param _signature : signature provided signed by signer.
     /// @param _poolName : Pool Name to name a pool.
-    /// @param _tokenAddress : tokenAddess of our vested tokesn.
+    /// @param _tokenAddress : tokenAddress of our vested tokesn.
     /// @param _keyHash : keyhash value to stop replay.
     /// @return Address of signer who signed the message hash.
     function signatureVerification(
@@ -660,7 +660,7 @@ contract IronVestAdminRequired is
         return _user;
     }
 
-    /// @dev this function suppose to return un allocated tokens against a token address
+    /// @dev this function suppose to return unallocated tokens against a token address
     /// @param _tokenAddress : Token address that is required to check from contract.
     function unAllocatedTokens(address _tokenAddress)
         public
@@ -710,7 +710,7 @@ contract IronVestAdminRequired is
     }
 
     /// @dev Verify and recover signer from salt and signature.
-    /// @param _salt : A hash value which contains concatened hash of different values.
+    /// @param _salt : A hash value which contains concatenated hash of different values.
     /// @param _v : mload(p) loads next 32 bytes starting at the memory address p into memory.
     /// @param _r : First 32 bytes stores the length of the signature.
     /// @param _s : add(sig, 32) = pointer of sig + 32 effectively, skips first 32 bytes of signature.
